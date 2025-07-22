@@ -4,7 +4,9 @@ from datetime import datetime
 import os, csv
 
 # ---------- Streamlit 界面 ----------
+
 st.set_page_config(page_title="焦虑自评量表（SAS）", layout="centered")
+st.image("jsszyylogo.png", width=500)  # 更改url_to_your_logo.png为你的logo图片链接，调整width为适当的大小
 st.title("江苏省中医院针灸科失眠专病门诊")
 st.markdown(
     "<h3 style='color:#555555;'>焦虑自评量表（SAS）在线问卷</h3>",
