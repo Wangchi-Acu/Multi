@@ -14,11 +14,15 @@ def save_csv_isi(name, record):
         writer.writeheader()
         writer.writerow(record)
     return path
-
-# ---------------- 主界面 ----------------
-st.set_page_config(page_title="ISI")
+    
 st.title("失眠严重指数量表 ISI")
-
+# ---------- Streamlit 界面 ----------
+st.set_page_config(page_title="失眠严重指数量表 （ISI）", layout="centered")
+st.title("江苏省中医院针灸科失眠专病门诊")
+st.markdown(
+    "<h3 style='color:#555555;'>失眠严重指数量表（ISI）在线问卷</h3>",
+    unsafe_allow_html=True
+)
 # 1. 先放姓名
 name = st.text_input("姓名")
 
