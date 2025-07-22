@@ -15,7 +15,6 @@ def save_csv_isi(name, record):
         writer.writerow(record)
     return path
     
-st.title("失眠严重指数量表 ISI")
 # ---------- Streamlit 界面 ----------
 st.set_page_config(page_title="失眠严重指数量表 （ISI）", layout="centered")
 st.title("江苏省中医院针灸科失眠专病门诊")
