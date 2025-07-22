@@ -16,6 +16,15 @@ def save_csv_fss(name, record):
         writer.writerow(record)
     return path
 
+# ---------- Streamlit 界面 ----------
+st.set_page_config(page_title="疲劳严重程度量表（FSS）", layout="centered")
+st.title("江苏省中医院针灸科失眠专病门诊")
+st.markdown(
+    "<h3 style='color:#555555;'>疲劳严重程度量表（FSS）在线问卷</h3>",
+    unsafe_allow_html=True
+)
+st.markdown("> 请根据自己的真实体验和实际情况来回答，不需要花费太多的时间去思考。")
+st.markdown("> 量表由9个条目组成，7个分值点评价，自1分至7分为非常不同意逐渐过渡为非常同意。")
 
 # ---------- 页面 ----------
 def show_fss():
