@@ -3,6 +3,14 @@ import pandas as pd
 from datetime import datetime
 import os, csv
 
+# ---------- Streamlit 界面 ----------
+st.set_page_config(page_title="抑郁自评量表 (SDS)", layout="centered")
+st.title("江苏省中医院针灸科失眠专病门诊")
+st.markdown(
+    "<h3 style='color:#555555;'>抑郁自评量表 (SDS)在线问卷</h3>",
+    unsafe_allow_html=True
+)
+
 def save_csv_sds(name, record):
     save_dir = r"F:\10量表结果"
     os.makedirs(save_dir, exist_ok=True)
@@ -15,32 +23,29 @@ def save_csv_sds(name, record):
     return path
 
 def show_sds():
-    st.set_page_config(page_title="SDS 抑郁量表")
-    st.title("抑郁自评量表 SDS")
-
     name = st.text_input("姓名")
 
     questions = [
         "我觉得闷闷不乐，情绪低沉",
-        "我觉得一天之中早晨最好（反向）",
+        "我觉得一天之中早晨最好",
         "我一阵阵哭出来或觉得想哭",
         "我晚上睡眠不好",
-        "我吃得跟平常一样多（反向）",
-        "我与异性密切接触时和以往一样感到愉快（反向）",
+        "我吃得跟平常一样多",
+        "我与异性密切接触时和以往一样感到愉快",
         "我发觉我的体重在下降",
         "我有便秘的苦恼",
         "我心跳比平时快",
         "我无缘无故地感到疲乏",
-        "我的头脑跟平常一样清楚（反向）",
-        "我觉得经常做的事情并没有困难（反向）",
+        "我的头脑跟平常一样清楚",
+        "我觉得经常做的事情并没有困难",
         "我觉得不安而平静不下来",
-        "我对将来抱有希望（反向）",
+        "我对将来抱有希望",
         "我比平常容易生气激动",
-        "我觉得作出决定是容易的（反向）",
-        "我觉得自己是个有用的人，有人需要我（反向）",
-        "我的生活过得很有意思（反向）",
+        "我觉得作出决定是容易的",
+        "我觉得自己是个有用的人，有人需要我",
+        "我的生活过得很有意思",
         "我认为如果我死了别人会生活得好些",
-        "平常感兴趣的事我仍然照样感兴趣（反向）"
+        "平常感兴趣的事我仍然照样感兴趣"
     ]
 
     opts = ["从无或偶尔","有时","经常","总是如此"]
