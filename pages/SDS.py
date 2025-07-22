@@ -4,6 +4,7 @@ from datetime import datetime
 import os, csv
 
 # ---------- Streamlit 界面 ----------
+st.image("jsszyylogo.png", width=500)  # 更改url_to_your_logo.png为你的logo图片链接，调整width为适当的大小
 st.set_page_config(page_title="抑郁自评量表 (SDS)", layout="centered")
 st.title("江苏省中医院针灸科失眠专病门诊")
 st.markdown(
