@@ -3,6 +3,14 @@ import pandas as pd
 from datetime import datetime
 import os, csv
 
+# ---------- Streamlit 界面 ----------
+st.set_page_config(page_title="焦虑自评量表（SAS）", layout="centered")
+st.title("江苏省中医院针灸科失眠专病门诊")
+st.markdown(
+    "<h3 style='color:#555555;'>焦虑自评量表（SAS）在线问卷</h3>",
+    unsafe_allow_html=True
+)
+
 def save_csv_sas(name, record):
     save_dir = r"F:\10量表结果"
     os.makedirs(save_dir, exist_ok=True)
