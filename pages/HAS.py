@@ -3,6 +3,14 @@ import pandas as pd
 from datetime import datetime
 import os, csv
 
+# ---------- Streamlit 界面 ----------
+st.set_page_config(page_title="过度觉醒量表 （HAS）", layout="centered")
+st.title("江苏省中医院针灸科失眠专病门诊")
+st.markdown(
+    "<h3 style='color:#555555;'>过度觉醒量表 （HAS）在线问卷</h3>",
+    unsafe_allow_html=True
+)
+
 def save_csv_has(name, record):
     save_dir = r"F:\10量表结果"
     os.makedirs(save_dir, exist_ok=True)
@@ -15,9 +23,7 @@ def save_csv_has(name, record):
     return path
 
 def show_has():
-    st.set_page_config(page_title="HAS 过度觉醒量表")
-    st.title("过度觉醒量表 HAS")
-
+    
     name = st.text_input("姓名")
 
     questions = [
