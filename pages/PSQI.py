@@ -47,6 +47,8 @@ def calculate_psqi(data):
     return {'A':A,'B':B,'C':C,'D':D,'E':E,'F':F,'G':G,'total':total,'eff':eff}
 
 # ---------- Streamlit 界面 ----------
+# 添加团队logo
+st.image("jsszyylogo.png", width=500)  # 更改url_to_your_logo.png为你的logo图片链接，调整width为适当的大小
 st.set_page_config(page_title="匹兹堡睡眠质量指数(PSQI)", layout="centered")
 st.title("江苏省中医院针灸科失眠专病门诊")
 st.markdown(
