@@ -45,7 +45,7 @@ def show_sds():
 
     opts = ["从无或偶尔","有时","经常","总是如此"]
     score_map = {"从无或偶尔":1,"有时":2,"经常":3,"总是如此":4}
-    reverse_idx = {1,4,5,10,11,13,16,17,19}  # 0 开始
+    reverse_idx = {1,4,5,10,11,13,15,16,17,19}  # 0 开始
 
     choices = {}
     for i, q in enumerate(questions, 1):
