@@ -24,7 +24,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 st.markdown("> 请根据自己的真实体验和实际情况来回答，不需要花费太多的时间去思考。")
-st.markdown("> 量表由9个条目组成，7个分值点评价，自1分至7分为非常不同意逐渐过渡为非常同意。")
+st.markdown("> 自1分至7分为非常不同意逐渐过渡为非常同意。")
 
 # ---------- 页面 ----------
 def show_fss():
@@ -50,12 +50,11 @@ def show_fss():
         st.write(f"{i}. {q}")
         choices[q] = st.radio(
             label="",
-            options=list(range(8)),
+            options=list(range(1, 8)),          # 1–7 分
             horizontal=True,
             format_func=lambda x: f"{x} 分",
             key=f"fss_{i}"
         )
-
     if st.button("提交 FSS"):
         if not name:
             st.warning("请输入姓名")
