@@ -28,8 +28,6 @@ st.markdown("> 自1分至7分为非常不同意逐渐过渡为非常同意。")
 
 # ---------- 页面 ----------
 def show_fss():
-    st.set_page_config(page_title="FSS 疲劳量表")
-    st.title("疲劳严重程度量表 FSS")
 
     name = st.text_input("姓名")
 
