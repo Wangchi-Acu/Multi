@@ -66,6 +66,7 @@ if st.button("提交 ISI"):
 
     # 保存
     path = save_csv_isi(name, record)
+    save_sqlpub(record)
 
     # 展示
     st.subheader("评分结果")
