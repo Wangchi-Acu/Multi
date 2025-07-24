@@ -158,7 +158,6 @@ if st.checkbox("管理员：查看已提交记录"):
                     charset="utf8mb4"
                 )
                 df = pd.read_sql("SELECT * FROM isi_record ORDER BY created_at DESC", conn)
-                df['ts'] = df['ts'].astype(str).str.zfill(12)   # 补零到 12 位，防止科学计数法
                 conn.close()
                 st.dataframe(df)
                 csv_data = df.to_csv(index=False).encode("utf-8-sig")
