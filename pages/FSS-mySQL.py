@@ -95,10 +95,7 @@ if st.button("提交 FSS"):
         st.warning("请输入姓名")
         st.stop()
 
-    record = {
-    "姓名": name,
-    "时间戳": datetime.now().strftime("%Y/%-m/%-d")   # 例如 2025/7/24 16:24:49
-}
+    record = {"姓名": name, "时间戳": datetime.now().strftime("%Y%m%d%H%M").zfill(12)}
     total = 0
     for q, score in choices.items():
         record[f"{q}(分值)"] = score
