@@ -82,3 +82,62 @@ if st.button("提交 ISI"):
             mime="text/csv"
         )
     st.success("问卷提交成功！")
+    
+import os, psycopg2
+
+def save_sqlpub(record: dict):
+    """把同一条记录写入 SQLpub 的 PostgreSQL"""
+    dsn = {
+        "host":     os.getenv("SQLPUB_HOST"),
+        "port":     int(os.getenv("SQLPUB_PORT", 5432)),
+        "dbname":   os.getenv("SQLPUB_DB"),
+        "user":     os.getenv("SQLPUB_USER"),
+        "password": os.getenv("SQLPUB_PWD"),
+    }
+    sql = """
+    INSERT INTO isi_record
+    (name, ts,
+     q1a_opt, q1a_score,
+     q1b_opt, q1b_score,
+     q1c_opt, q1c_score,
+     q2_opt,  q2_score,
+     q3_opt,  q3_score,
+     q4_opt,  q4_score,
+     q5_opt,  q5_score,
+     total_score)
+    VALUES
+    (%(name)s, %(ts)s,
+     %(1a_opt)s, %(1a_score)s,
+     %(1b_opt)s, %(1b_score)s,
+     %(1c_opt)s, %(1c_score)s,
+     %(2_opt)s,  %(2_score)s,
+     %(3_opt)s,  %(3_score)s,
+     %(4_opt)s,  %(4_score)s,
+     %(5_opt)s,  %(5_score)s,
+     %(total)s)
+    """
+    try:
+        with psycopg2.connect(**dsn) as conn:
+            with conn.cursor() as cur:
+                cur.execute(sql, {
+                    "name": record["姓名"],
+                    "ts":   record["时间戳"],
+                    "1a_opt": record["1a. 入睡困难(选项)"],
+                    "1a_score": record["1a. 入睡困难(分值)"],
+                    "1b_opt": record["1b. 睡眠维持困难(选项)"],
+                    "1b_score": record["1b. 睡眠维持困难(分值)"],
+                    "1c_opt": record["1c. 早醒(选项)"],
+                    "1c_score": record["1c. 早醒(分值)"],
+                    "2_opt": record["2. 睡眠满意度(选项)"],
+                    "2_score": record["2. 睡眠满意度(分值)"],
+                    "3_opt": record["3. 日常功能影响(选项)"],
+                    "3_score": record["3. 日常功能影响(分值)"],
+                    "4_opt": record["4. 生活质量影响(选项)"],
+                    "4_score": record["4. 生活质量影响(分值)"],
+                    "5_opt": record["5. 担心程度(选项)"],
+                    "5_score": record["5. 担心程度(分值)"],
+                    "total": record["总分"]
+                })
+            conn.commit()
+    except Exception as e:
+        st.error("SQLpub 写入失败：" + str(e))
