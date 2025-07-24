@@ -195,27 +195,28 @@ if submitted:
     st.success("PSQI 提交成功！")
 
 # ---------- 4. 管理员查看 ----------
-if st.checkbox("管理员：查看已提交记录（PSQI）"):
+if st.checkbox("管理员：查看已提交记录（HAS）"):
     pwd = st.text_input("请输入管理员密码", type="password")
-    if pwd.strip() == "12024168":
-        try:
-            conn = pymysql.connect(
-                host=os.getenv("SQLPUB_HOST"),
-                port=int(os.getenv("SQLPUB_PORT", 3307)),
-                user=os.getenv("SQLPUB_USER"),
-                password=os.getenv("SQLPUB_PWD"),
-                database=os.getenv("SQLPUB_DB"),
-                charset="utf8mb4"
-            )
-            df = pd.read_sql("SELECT * FROM psqi_record ORDER BY created_at DESC", conn)
-            conn.close()
-            if df.empty:
-                st.info("暂无数据")
-            else:
-                st.dataframe(df)
-                csv_all = df.to_csv(index=False).encode("utf-8-sig")
-                st.download_button("📥 导出全部 CSV", csv_all, "psqi_all.csv", "text/csv")
-        except Exception as e:
-            st.error("读取数据库失败：" + str(e))
-    else:
-        st.error("密码错误，无法查看数据")
+    if st.button("确认密码"):
+        if pwd.strip() == "12024168":
+            try:
+                conn = pymysql.connect(
+                    host=os.getenv("SQLPUB_HOST"),
+                    port=int(os.getenv("SQLPUB_PORT", 3307)),
+                    user=os.getenv("SQLPUB_USER"),
+                    password=os.getenv("SQLPUB_PWD"),
+                    database=os.getenv("SQLPUB_DB"),
+                    charset="utf8mb4"
+                )
+                df = pd.read_sql("SELECT * FROM has_record ORDER BY created_at DESC", conn)
+                conn.close()
+                if df.empty:
+                    st.info("暂无数据")
+                else:
+                    st.dataframe(df)
+                    csv_all = df.to_csv(index=False).encode("utf-8-sig")
+                    st.download_button("📥 导出全部 CSV", csv_all, "has_all.csv", "text/csv")
+            except Exception as e:
+                st.error("读取数据库失败：" + str(e))
+        else:
+            st.error("密码错误，无法查看数据")
