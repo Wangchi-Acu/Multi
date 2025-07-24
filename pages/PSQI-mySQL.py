@@ -148,7 +148,7 @@ if submitted:
 
     # 构造记录
     record = {
-        "姓名": name,
+        "name": name,
         "时间戳": datetime.now().strftime("%Y/%-m/%-d %H:%M:%S"),
         "年龄": age, "身高": height, "体重": weight, "联系方式": contact,
         "上床时间": bed, "起床时间": getup,
