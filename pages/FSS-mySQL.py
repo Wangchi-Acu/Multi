@@ -97,7 +97,7 @@ if st.button("提交 FSS"):
 
     record = {
     "姓名": name,
-    "时间戳": datetime.now().strftime("%Y/%-m/%-d %H:%M:%S")   # 例如 2025/7/24 16:24:49
+    "时间戳": datetime.now().strftime("%Y/%-m/%-d")   # 例如 2025/7/24 16:24:49
 }
     total = 0
     for q, score in choices.items():
