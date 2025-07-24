@@ -1,3 +1,5 @@
 streamlit
 pymysql
 cryptography
+pandas
+altair
