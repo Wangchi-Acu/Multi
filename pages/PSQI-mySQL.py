@@ -39,7 +39,7 @@ def save_sqlpub_psqi(record: dict):
          %(bed_time)s, %(getup_time)s, %(sleep_latency_choice)s, %(sleep_duration_choice)s,
          %(q5a)s, %(q5b)s, %(q5c)s, %(q5d)s, %(q5e)s, %(q5f)s, %(q5g)s, %(q5h)s, %(q5i)s, %(q5j)s,
          %(q6)s, %(q7)s, %(q8)s, %(q9)s,
-         %(A)s, %(B)s, %(C)s, %(D)s, %(E)s, %(F)s, %(G)s, %(total)s, %(eff)s)
+         %(A)s, %(B)s, %(C)s, %(D)s, %(E)s, %(F)s, %(G)s, %(total)s, %(sleep_efficiency)s)
         """
         cur = conn.cursor()
         cur.execute(sql, record)
@@ -85,9 +85,9 @@ def calculate_psqi(data):
     G_total = (data['q8']-1)+(data['q9']-1)
     G = 0 if G_total==0 else 1 if G_total<=2 else 2 if G_total<=4 else 3
     total = A+B+C+D+E+F+G
-    return {'A':A,'B':B,'C':C,'D':D,'E':E,'F':F,'G':G,'total':total,'eff':eff}
+    return {'A':A,'B':B,'C':C,'D':D,'E':E,'F':F,'G':G,'total':total,'sleep_efficiency':eff}
 
-# ---------- 3. Streamlit 界面 ----------
+# ---------- 3. Streamlit 页面 ----------
 st.set_page_config(page_title="匹兹堡睡眠质量指数(PSQI)", layout="centered")
 st.image("jsszyylogo.png", width=500)
 st.title("江苏省中医院针灸科失眠专病门诊")
@@ -146,15 +146,16 @@ if submitted:
     }
     res = calculate_psqi(data)
 
-    # 构造记录
+    # 构造记录（键名务必与 SQL 占位符一致）
     record = {
         "name": name,
         "ts": datetime.now().strftime("%Y/%-m/%-d %H:%M:%S"),
         "age": age, "height": height, "weight": weight, "contact": contact,
-        "bed": bed, "getup": getup,
-        "latency": latency, "duration": duration,
-        **{f"q5{k}":v for k,v in zip("abcdefghij",[q5a,q5b,q5c,q5d,q5e,q5f,q5g,q5h,q5i,q5j])},
-        "q6": q6, "q7": q7, "q8": q8, "q9": q9,
+        "bed_time": bed, "getup_time": getup,
+        "sleep_latency_choice": data["sleep_latency_choice"],
+        "sleep_duration_choice": data["sleep_duration_choice"],
+        **{f"q5{k}": data[f"q5{k}"] for k in "abcdefghij"},
+        "q6": data["q6"], "q7": data["q7"], "q8": data["q8"], "q9": data["q9"],
         **res
     }
     path = save_csv_psqi(name, record)
