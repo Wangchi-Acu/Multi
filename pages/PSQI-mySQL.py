@@ -149,10 +149,10 @@ if submitted:
     # 构造记录
     record = {
         "name": name,
-        "时间戳": datetime.now().strftime("%Y/%-m/%-d %H:%M:%S"),
-        "年龄": age, "身高": height, "体重": weight, "联系方式": contact,
-        "上床时间": bed, "起床时间": getup,
-        "入睡选项": latency, "睡眠时长": duration,
+        "ts": datetime.now().strftime("%Y/%-m/%-d %H:%M:%S"),
+        "age": age, "height": height, "weight": weight, "contact": contact,
+        "bed": bed, "getup": getup,
+        "latency": latency, "duration": duration,
         **{f"q5{k}":v for k,v in zip("abcdefghij",[q5a,q5b,q5c,q5d,q5e,q5f,q5g,q5h,q5i,q5j])},
         "q6": q6, "q7": q7, "q8": q8, "q9": q9,
         **res
