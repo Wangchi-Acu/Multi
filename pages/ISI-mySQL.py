@@ -133,13 +133,19 @@ if st.button("提交 ISI"):
     for k, v in choices.items():
         st.write(f"- {k}：{v}（{score_map[v]} 分）")
 
-    with open(path, "rb") as f:
-        st.download_button(
-            label="📥 下载结果 CSV",
-            data=f,
-            file_name=os.path.basename(path),
-            mime="text/csv"
-        )
+        # ---------- 下载按钮（不刷新） ----------
+    csv_bytes = (
+        pd.DataFrame([record])        # 只把当前这条记录变成 DataFrame
+        .to_csv(index=False)
+        .encode("utf-8-sig")
+    )
+    st.download_button(
+        label="📥 下载结果 CSV",
+        data=csv_bytes,
+        file_name=os.path.basename(path),
+        mime="text/csv",
+        key="download_single"          # 给 key 防止重复
+    )
     st.success("问卷提交成功！")
 
 # ---------- 4. 管理员查看 ----------
