@@ -114,7 +114,7 @@ if st.button("提交 ISI"):
 
     record = {
     "姓名": name,
-    "时间戳": "'" + datetime.now().strftime("%Y%m%d%H%M")   # 加单引号前缀
+    "时间戳": datetime.now().strftime("%Y%m%d%H%M").zfill(12)   # 12 位，无引号
 }
     total = 0
     for txt, opts in questions:
