@@ -8,7 +8,7 @@ import altair as alt
 def save_csv_psqi(name, record):
     save_dir = r"F:\网页量表结果"
     os.makedirs(save_dir, exist_ok=True)
-    file_name = f"{record['时间戳'].replace('/', '').replace(':', '').replace(' ', '')}_{name}_PSQI.csv"
+    file_name = f"{record['ts'].replace('/', '').replace(':', '').replace(' ', '')}_{name}_PSQI.csv"
     path = os.path.join(save_dir, file_name)
     with open(path, "w", newline="", encoding="utf-8-sig") as f:
         writer = csv.DictWriter(f, fieldnames=record.keys())
