@@ -157,7 +157,7 @@ if st.checkbox("管理员：查看已提交记录"):
                 df = pd.read_sql("SELECT * FROM isi_record ORDER BY created_at DESC", conn)
                 conn.close()
                 st.dataframe(df)
-                csv_data = df.to_csv(index=False).encode("utf-8")
+                csv_data = df.to_csv(index=False).encode("utf-8-sig")
                 st.download_button("📥 导出全部 CSV", csv_data, "isi_all.csv", "text/csv")
             except Exception as e:
                 st.error("读取数据库失败：" + str(e))
