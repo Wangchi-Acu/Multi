@@ -112,7 +112,10 @@ if st.button("提交 ISI"):
         st.warning("请输入姓名")
         st.stop()
 
-    record = {"姓名": name, "时间戳": datetime.now().strftime("%Y%m%d%H%M")}
+    record = {
+    "姓名": name,
+    "时间戳": "'" + datetime.now().strftime("%Y%m%d%H%M")   # 加单引号前缀
+}
     total = 0
     for txt, opts in questions:
         opt = choices[txt]
