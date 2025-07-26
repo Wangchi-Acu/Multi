@@ -35,7 +35,7 @@ def save_sqlpub_psqi(record: dict):
          q6, q7, q8, q9,
          A, B, C, D, E, F, G, total_score, sleep_efficiency)
         VALUES
-        (%(name)s, %(ts)s, %(age)s, %(height)s, %(weight)s, %(contact)s,
+        (%(name)s, %(gender)s, %(ts)s, %(age)s, %(height)s, %(weight)s, %(contact)s,
          %(bed_time)s, %(getup_time)s, %(sleep_latency_choice)s, %(sleep_duration_choice)s,
          %(q5a)s, %(q5b)s, %(q5c)s, %(q5d)s, %(q5e)s, %(q5f)s, %(q5g)s, %(q5h)s, %(q5i)s, %(q5j)s,
          %(q6)s, %(q7)s, %(q8)s, %(q9)s,
@@ -65,10 +65,7 @@ def calculate_sleep_efficiency(bed, getup, choice):
         return 0
 
 def get_component_score(eff):
-    if eff > 85: return 0
-    elif 75 <= eff <= 84: return 1
-    elif 65 <= eff <= 74: return 2
-    else: return 3
+    return 0 if eff > 85 else 1 if 75 <= eff <= 84 else 2 if 65 <= eff <= 74 else 3
 
 def calculate_psqi(data):
     A = data['q6'] - 1
@@ -97,7 +94,7 @@ st.markdown("> 请根据 **最近一个月** 的实际情况填写")
 with st.form("psqi_form"):
     st.subheader("① 基本信息")
     name   = st.text_input("姓名")
-    gender = st.selectbox("性别", ["男", "女"])
+    gender = st.selectbox("性别", ["男", "女", "其他"])
     age    = st.number_input("年龄", 1, 120, 25)
     height = st.number_input("身高(cm)", 50, 250, 170)
     weight = st.number_input("体重(kg)", 20, 200, 65)
@@ -137,8 +134,9 @@ if submitted:
 
     # 数据整理
     data = {
-        "name":name, "age":age, "gender":gender, "height":height, "weight":weight, "contact":contact,
-        "bed_time":bed, "getup_time":getup,
+        "name": name, "gender": gender,
+        "age": age, "height": height, "weight": weight, "contact": contact,
+        "bed_time": bed, "getup_time": getup,
         "sleep_latency_choice":["≤15分钟","16-30分钟","31-60分钟","≥60分钟"].index(latency)+1,
         "sleep_duration_choice": 1 if duration>7 else 2 if 6<=duration<=7 else 3 if 5<=duration<6 else 4,
         **{f"q5{k}":opts.index(v)+1 for k,v in zip("abcdefghij",[q5a,q5b,q5c,q5d,q5e,q5f,q5g,q5h,q5i,q5j])},
@@ -150,8 +148,9 @@ if submitted:
     # 构造记录（键名务必与 SQL 占位符一致）
     record = {
         "name": name,
+        "gender": gender,
         "ts": datetime.now().strftime("%Y/%-m/%-d %H:%M:%S"),
-        "age": age, "gender": gender, "height": height, "weight": weight, "contact": contact,
+        "age": age, "height": height, "weight": weight, "contact": contact,
         "bed_time": bed, "getup_time": getup,
         "sleep_latency_choice": data["sleep_latency_choice"],
         "sleep_duration_choice": data["sleep_duration_choice"],
@@ -196,7 +195,7 @@ if submitted:
     st.success("PSQI 提交成功！")
 
 # ---------- 4. 管理员查看 ----------
-if st.checkbox("管理员：查看已提交记录（HAS）"):
+if st.checkbox("管理员：查看已提交记录（PSQI）"):
     pwd = st.text_input("请输入管理员密码", type="password")
     if st.button("确认密码"):
         if pwd.strip() == "12024168":
@@ -209,14 +208,14 @@ if st.checkbox("管理员：查看已提交记录（HAS）"):
                     database=os.getenv("SQLPUB_DB"),
                     charset="utf8mb4"
                 )
-                df = pd.read_sql("SELECT * FROM has_record ORDER BY created_at DESC", conn)
+                df = pd.read_sql("SELECT * FROM psqi_record ORDER BY created_at DESC", conn)
                 conn.close()
                 if df.empty:
                     st.info("暂无数据")
                 else:
                     st.dataframe(df)
                     csv_all = df.to_csv(index=False).encode("utf-8-sig")
-                    st.download_button("📥 导出全部 CSV", csv_all, "has_all.csv", "text/csv")
+                    st.download_button("📥 导出全部 CSV", csv_all, "psqi_all.csv", "text/csv")
             except Exception as e:
                 st.error("读取数据库失败：" + str(e))
         else:
