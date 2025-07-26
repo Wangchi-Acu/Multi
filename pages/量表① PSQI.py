@@ -29,7 +29,7 @@ def save_sqlpub_psqi(record: dict):
         )
         sql = """
         INSERT INTO psqi_record
-        (name, ts, age, height, weight, contact,
+        (name, gender, ts, age, height, weight, contact,
          bed_time, getup_time, sleep_latency_choice, sleep_duration_choice,
          q5a, q5b, q5c, q5d, q5e, q5f, q5g, q5h, q5i, q5j,
          q6, q7, q8, q9,
@@ -97,6 +97,7 @@ st.markdown("> 请根据 **最近一个月** 的实际情况填写")
 with st.form("psqi_form"):
     st.subheader("① 基本信息")
     name   = st.text_input("姓名")
+    gender = st.selectbox("性别", ["男", "女"])
     age    = st.number_input("年龄", 1, 120, 25)
     height = st.number_input("身高(cm)", 50, 250, 170)
     weight = st.number_input("体重(kg)", 20, 200, 65)
@@ -136,7 +137,7 @@ if submitted:
 
     # 数据整理
     data = {
-        "name":name, "age":age, "height":height, "weight":weight, "contact":contact,
+        "name":name, "age":age, "gender":gender, "height":height, "weight":weight, "contact":contact,
         "bed_time":bed, "getup_time":getup,
         "sleep_latency_choice":["≤15分钟","16-30分钟","31-60分钟","≥60分钟"].index(latency)+1,
         "sleep_duration_choice": 1 if duration>7 else 2 if 6<=duration<=7 else 3 if 5<=duration<6 else 4,
@@ -150,7 +151,7 @@ if submitted:
     record = {
         "name": name,
         "ts": datetime.now().strftime("%Y/%-m/%-d %H:%M:%S"),
-        "age": age, "height": height, "weight": weight, "contact": contact,
+        "age": age, "gender": gender, "height": height, "weight": weight, "contact": contact,
         "bed_time": bed, "getup_time": getup,
         "sleep_latency_choice": data["sleep_latency_choice"],
         "sleep_duration_choice": data["sleep_duration_choice"],
