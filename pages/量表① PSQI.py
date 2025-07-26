@@ -179,7 +179,7 @@ if submitted:
     ).properties(height=350)
     st.altair_chart(chart, use_container_width=True)
 
-    level = "很好" if res["total"] <= 5 else "尚可" if res["total"] <= 10 else "一般" if res["total"] <= 15 else "很差"
+    level = "尚可" if res["total"] <= 5 else "一般" if res["total"] <= 10 else "较差" if res["total"] <= 15 else "很差"
     st.metric("🎯 PSQI 总分", f"{res['total']} 分")
     st.info(f"综合评定：睡眠质量 **{level}**")
 
