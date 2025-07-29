@@ -89,7 +89,7 @@ st.set_page_config(page_title="匹兹堡睡眠质量指数(PSQI)", layout="cente
 st.image("jsszyylogo.png", width=500)
 st.markdown("""
 <div style='background: linear-gradient(135deg,#e3f2fd 0%,#bbdefb 100%); color: #0d47a1; padding: 25px; border-radius: 15px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1);'>
-    <h1 style='font-size: 34px; margin: 0; font-weight: 700;'>江苏省中医院针灸科</h1>
+    <h1 style='font-size: 32px; margin: 0; font-weight: 700;'>江苏省中医院针灸科</h1>
     <h1 style='font-size: 32px; margin: 10px 0 0 0; font-weight: 600;'>失眠专病门诊</h1>
 </div>
 """, unsafe_allow_html=True)
