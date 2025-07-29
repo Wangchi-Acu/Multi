@@ -22,7 +22,7 @@ with st.form("query_form"):
 
 # 处理查询
 if submitted and patient and password:
-    if password.strip() != "12024168":
+    if password.strip() != "10338":
         st.error("密码错误")
         st.stop()
 
