@@ -17,7 +17,7 @@ if submitted and patient and password:
         st.error("密码错误")
         st.stop()
 
-    # ---------- 数据库查询（核心部分）----------
+    # ---------- 数据库查询 ----------
     conn = pymysql.connect(
         host=os.getenv("SQLPUB_HOST"),
         port=int(os.getenv("SQLPUB_PORT", 3307)),
@@ -31,8 +31,23 @@ if submitted and patient and password:
     dfs = []
     for tbl in tables:
         try:
+            # 明确指定需要的列，避免列名冲突
+            columns_to_select = "id, name, ts, created_at"
+            if tbl == "isi_record":
+                columns_to_select += ", total"
+            elif tbl == "fss_record":
+                columns_to_select += ", total_score"
+            elif tbl == "psqi_record":
+                columns_to_select += ", total_score"
+            elif tbl == "sas_record":
+                columns_to_select += ", std_score"
+            elif tbl == "sds_record":
+                columns_to_select += ", std_score"
+            elif tbl == "has_record":
+                columns_to_select += ", total_score"
+            
             df = pd.read_sql(
-                f"SELECT * FROM {tbl} WHERE name=%(name)s ORDER BY created_at DESC",
+                f"SELECT {columns_to_select} FROM {tbl} WHERE name=%(name)s ORDER BY created_at DESC",
                 conn,
                 params={"name": patient}
             )
@@ -43,7 +58,6 @@ if submitted and patient and password:
     conn.close()
     
     df_all = pd.concat(dfs, ignore_index=True) if dfs else pd.DataFrame()
-    # ---------- 查询结束 ----------
 
     if df_all.empty:
         st.warning("该患者暂无记录")
@@ -58,20 +72,26 @@ if submitted and patient and password:
         "SDS": "std_score",
         "HAS": "total_score"
     }
+    
+    # 确保所有量表都有对应的列名
+    for scale, col in score_map.items():
+        if col not in df_all.columns:
+            df_all[col] = None  # 添加缺失的列
+
     grade_map = {
-        "ISI": lambda x: "无失眠" if x < 8 else "轻度" if x < 15 else "中度" if x < 22 else "重度",
-        "FSS": lambda x: "正常" if x < 36 else "疲劳",
-        "PSQI": lambda x: "很好" if x <= 5 else "尚可" if x <= 10 else "一般" if x <= 15 else "很差",
-        "SAS": lambda x: "无焦虑" if x < 50 else "轻度" if x < 60 else "中度" if x < 70 else "重度",
-        "SDS": lambda x: "无抑郁" if x < 53 else "轻度" if x < 63 else "中度" if x < 73 else "重度",
-        "HAS": lambda x: "正常" if x <= 32 else "过度觉醒"
+        "ISI": lambda x: "无失眠" if x < 8 else "轻度" if x < 15 else "中度" if x < 22 else "重度" if x is not None else "无数据",
+        "FSS": lambda x: "正常" if x < 36 else "疲劳" if x is not None else "无数据",
+        "PSQI": lambda x: "很好" if x <= 5 else "尚可" if x <= 10 else "一般" if x <= 15 else "很差" if x is not None else "无数据",
+        "SAS": lambda x: "无焦虑" if x < 50 else "轻度" if x < 60 else "中度" if x < 70 else "重度" if x is not None else "无数据",
+        "SDS": lambda x: "无抑郁" if x < 53 else "轻度" if x < 63 else "中度" if x < 73 else "重度" if x is not None else "无数据",
+        "HAS": lambda x: "正常" if x <= 32 else "过度觉醒" if x is not None else "无数据"
     }
 
     st.subheader("📊 分数 & 等级")
     cols = st.columns(len(score_map))
     for c, (scale, col) in zip(cols, score_map.items()):
         df_scale = df_all[df_all["量表"] == scale]
-        if not df_scale.empty:
+        if not df_scale.empty and col in df_scale.columns and not df_scale[col].isnull().all():
             latest_record = df_scale.iloc[0]
             val = latest_record[col]
             grade = grade_map[scale](val)
@@ -83,7 +103,7 @@ if submitted and patient and password:
     st.subheader("📈 详细记录")
     for _, row in df_all.iterrows():
         # 清理时间戳中的特殊字符
-        ts_str = str(row["ts"]).replace("/", "").replace(":", "").replace(" ", "")
+        ts_str = str(row["ts"]).replace("/", "").replace(":", "").replace(" ", "") if pd.notnull(row["ts"]) else "无时间戳"
         csv_name = f"{ts_str}_{patient}_{row['量表']}.csv"
         
         buf = io.BytesIO()
@@ -91,7 +111,7 @@ if submitted and patient and password:
         buf.seek(0)
         
         st.download_button(
-            label=f"📥 下载 {row['量表']} 记录 ({row['ts']})",
+            label=f"📥 下载 {row['量表']} 记录 ({row['ts'] if pd.notnull(row['ts']) else '无时间戳'})",
             data=buf,
             file_name=csv_name,
             mime="text/csv",
