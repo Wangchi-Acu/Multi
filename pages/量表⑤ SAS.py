@@ -58,7 +58,12 @@ def calculate_sas(answers):
 # ---------- 3. Streamlit 页面 ----------
 st.set_page_config(page_title="焦虑自评量表（SAS）", layout="centered")
 st.image("jsszyylogo.png", width=500)
-st.title("江苏省中医院针灸科失眠专病门诊")
+st.markdown("""
+<div style='color: #000000; padding: 2px; border-radius: 15px; text-align: left;'>
+    <h1 style='font-size: 37px; margin: 0; font-weight: 700;'>江苏省中医院针灸科</h1>
+    <h1 style='font-size: 32px; margin: -15px 0 0 0; font-weight: 600;'>失眠专病门诊</h1>
+</div>
+""", unsafe_allow_html=True)
 st.markdown("<h3 style='color:#555555;'>焦虑自评量表（SAS）在线问卷</h3>", unsafe_allow_html=True)
 
 name = st.text_input("姓名")
