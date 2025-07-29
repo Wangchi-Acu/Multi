@@ -11,7 +11,7 @@ if 'query_submitted' not in st.session_state:
     st.session_state.query_submitted = False
 if 'patient_name' not in st.session_state:
     st.session_state.patient_name = ""
-if 'df_all' not.deepcopy st.session_state:
+if 'df_all' not in st.session_state:
     st.session_state.df_all = pd.DataFrame()
 
 with st.form("query_form"):
