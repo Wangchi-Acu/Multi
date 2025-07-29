@@ -139,9 +139,15 @@ if st.session_state.query_submitted and not st.session_state.df_all.empty:
                         else:
                             display_time = row["created_at"].strftime("%m-%d") if pd.notnull(row["created_at"]) else "无日期"
                         
-                        # 显示分数和等级
-                        grade = grade_map[scale](score_val) if score_val != "无数据" else "无数据"
-                        st.metric(f"{display_time}", f"{score_val}", delta=grade)
+                        # 显示分数和等级（不保留小数）
+                        if score_val != "无数据" and isinstance(score_val, (int, float)):
+                            score_display = str(int(score_val))  # 转换为整数并转为字符串
+                            grade = grade_map[scale](score_val)
+                        else:
+                            score_display = "无数据"
+                            grade = "无数据"
+                            
+                        st.metric(f"{display_time}", score_display, delta=grade)
             
             st.markdown("---")  # 分隔线
 
@@ -168,14 +174,20 @@ if st.session_state.query_submitted and not st.session_state.df_all.empty:
                 else:
                     display_time = row["created_at"].strftime("%Y-%m-%d %H:%M:%S") if pd.notnull(row["created_at"]) else "无时间"
                 
-                # 显示记录信息
+                # 显示记录信息（不保留小数）
+                if score_val != "无数据" and isinstance(score_val, (int, float)):
+                    score_display = str(int(score_val))  # 转换为整数并转为字符串
+                    grade = grade_map[scale](score_val)
+                else:
+                    score_display = "无数据"
+                    grade = "无数据"
+                
                 col1, col2, col3 = st.columns([2, 1, 1])
                 with col1:
                     st.write(f"📅 {display_time}")
                 with col2:
-                    st.write(f"💯 总分: {score_val}")
+                    st.write(f"💯 总分: {score_display}")
                 with col3:
-                    grade = grade_map[scale](score_val) if score_val != "无数据" else "无数据"
                     st.write(f"📊 等级: {grade}")
                 
                 # 下载按钮
