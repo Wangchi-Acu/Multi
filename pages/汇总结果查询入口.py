@@ -125,61 +125,95 @@ if st.session_state.query_submitted and not st.session_state.df_all.empty:
         else:
             c.metric(scale, "无数据", delta="无记录")
 
-    # 下载按钮
-    st.subheader("📈 详细记录")
+    # 按量表分组显示所有记录
+    st.subheader("📈 详细记录历史")
     
-    for _, row in df_all.iterrows():
-        # 清理时间戳中的特殊字符
-        ts_str = str(row["ts"]).replace("/", "").replace(":", "").replace(" ", "").replace("-", "") if pd.notnull(row["ts"]) else "无时间戳"
-        csv_name = f"{ts_str}_{patient}_{row['量表']}.csv"
-        
-        try:
-            # 连接数据库查询完整记录（SELECT * 获取所有字段）
-            conn = pymysql.connect(
-                host=os.getenv("SQLPUB_HOST"),
-                port=int(os.getenv("SQLPUB_PORT", 3307)),
-                user=os.getenv("SQLPUB_USER"),
-                password=os.getenv("SQLPUB_PWD"),
-                database=os.getenv("SQLPUB_DB"),
-                charset="utf8mb4"
-            )
+    # 按量表分组
+    for scale in ["ISI", "FSS", "PSQI", "SAS", "SDS", "HAS"]:
+        df_scale = df_all[df_all["量表"] == scale]
+        if not df_scale.empty:
+            st.markdown(f"### {scale} 量表记录")
             
-            # 根据量表名确定表名
-            table_name = f"{row['量表'].lower()}_record"
+            # 按时间排序（最新的在上面）
+            df_scale = df_scale.sort_values("created_at", ascending=False)
             
-            # 查询该记录的完整数据
-            detail_df = pd.read_sql(
-                f"SELECT * FROM {table_name} WHERE id=%(id)s",
-                conn,
-                params={"id": row['id']}
-            )
-            conn.close()
-            
-            # 如果查询到数据，则使用完整数据生成CSV
-            if not detail_df.empty:
-                buf = io.BytesIO()
-                detail_df.to_csv(buf, index=False, encoding="utf-8-sig")
-                buf.seek(0)
-            else:
-                # 如果没有找到详细记录，回退到原来的单行数据
-                buf = io.BytesIO()
-                pd.DataFrame([row]).to_csv(buf, index=False, encoding="utf-8-sig")
-                buf.seek(0)
+            # 显示该量表的所有记录
+            for _, row in df_scale.iterrows():
+                col_score = score_map[scale]
+                score_val = row[col_score] if col_score in row and pd.notnull(row[col_score]) else "无数据"
                 
-        except Exception as e:
-            # 如果查询失败，回退到原来的单行数据
-            st.warning(f"获取详细记录失败: {str(e)}")
-            buf = io.BytesIO()
-            pd.DataFrame([row]).to_csv(buf, index=False, encoding="utf-8-sig")
-            buf.seek(0)
-        
-        st.download_button(
-            label=f"📥 下载 {row['量表']} 记录 ({row['ts'] if pd.notnull(row['ts']) else '无时间戳'})",
-            data=buf,
-            file_name=csv_name,
-            mime="text/csv",
-            key=f"{row['量表']}_{row['id']}"
-        )
+                # 格式化时间显示
+                if pd.notnull(row["ts"]):
+                    display_time = row["ts"]
+                else:
+                    display_time = row["created_at"].strftime("%Y-%m-%d %H:%M:%S") if pd.notnull(row["created_at"]) else "无时间"
+                
+                # 显示记录信息
+                col1, col2, col3 = st.columns([2, 1, 1])
+                with col1:
+                    st.write(f"📅 {display_time}")
+                with col2:
+                    st.write(f"💯 总分: {score_val}")
+                with col3:
+                    grade = grade_map[scale](score_val) if score_val != "无数据" else "无数据"
+                    st.write(f"📊 等级: {grade}")
+                
+                # 下载按钮
+                # 清理时间戳中的特殊字符
+                ts_str = str(row["ts"]).replace("/", "").replace(":", "").replace(" ", "").replace("-", "") if pd.notnull(row["ts"]) else "无时间戳"
+                csv_name = f"{ts_str}_{patient}_{row['量表']}.csv"
+                
+                try:
+                    # 连接数据库查询完整记录（SELECT * 获取所有字段）
+                    conn = pymysql.connect(
+                        host=os.getenv("SQLPUB_HOST"),
+                        port=int(os.getenv("SQLPUB_PORT", 3307)),
+                        user=os.getenv("SQLPUB_USER"),
+                        password=os.getenv("SQLPUB_PWD"),
+                        database=os.getenv("SQLPUB_DB"),
+                        charset="utf8mb4"
+                    )
+                    
+                    # 根据量表名确定表名
+                    table_name = f"{row['量表'].lower()}_record"
+                    
+                    # 查询该记录的完整数据
+                    detail_df = pd.read_sql(
+                        f"SELECT * FROM {table_name} WHERE id=%(id)s",
+                        conn,
+                        params={"id": row['id']}
+                    )
+                    conn.close()
+                    
+                    # 如果查询到数据，则使用完整数据生成CSV
+                    if not detail_df.empty:
+                        buf = io.BytesIO()
+                        detail_df.to_csv(buf, index=False, encoding="utf-8-sig")
+                        buf.seek(0)
+                    else:
+                        # 如果没有找到详细记录，回退到原来的单行数据
+                        buf = io.BytesIO()
+                        pd.DataFrame([row]).to_csv(buf, index=False, encoding="utf-8-sig")
+                        buf.seek(0)
+                        
+                except Exception as e:
+                    # 如果查询失败，回退到原来的单行数据
+                    st.warning(f"获取详细记录失败: {str(e)}")
+                    buf = io.BytesIO()
+                    pd.DataFrame([row]).to_csv(buf, index=False, encoding="utf-8-sig")
+                    buf.seek(0)
+                
+                st.download_button(
+                    label=f"📥 下载此记录",
+                    data=buf,
+                    file_name=csv_name,
+                    mime="text/csv",
+                    key=f"{row['量表']}_{row['id']}_{row['created_at']}"
+                )
+                
+                st.markdown("---")  # 分隔线
+                
+            st.markdown("<br>", unsafe_allow_html=True)  # 空行分隔不同量表
 
 elif not st.session_state.query_submitted:
     st.info("请先输入患者姓名和管理员密码，再点击「确认查询」")
