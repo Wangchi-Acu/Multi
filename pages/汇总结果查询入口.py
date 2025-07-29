@@ -7,7 +7,7 @@ st.set_page_config(page_title="患者查询", layout="wide")
 st.title("📋 患者量表查询")
 
 # 初始化 session state
-if 'query_submitted' not in st.session_state:
+if 'query_submitted' not not st.session_state:
     st.session_state.query_submitted = False
 if 'patient_name' not in st.session_state:
     st.session_state.patient_name = ""
@@ -128,26 +128,13 @@ if st.session_state.query_submitted and not st.session_state.df_all.empty:
     # 下载按钮
     st.subheader("📈 详细记录")
     
-    # 建立量表到表名的映射
-    table_map = {
-        "ISI": "isi",
-        "FSS": "fss", 
-        "PSQI": "psqi",
-        "SAS": "sas",
-        "SDS": "sds",
-        "HAS": "has"
-    }
-    
     for _, row in df_all.iterrows():
         # 清理时间戳中的特殊字符
         ts_str = str(row["ts"]).replace("/", "").replace(":", "").replace(" ", "").replace("-", "") if pd.notnull(row["ts"]) else "无时间戳"
         csv_name = f"{ts_str}_{patient}_{row['量表']}.csv"
         
-        # 获取对应的详细表名
-        detail_table = table_map.get(row['量表'], row['量表'].lower())
-        
         try:
-            # 连接数据库查询完整记录
+            # 连接数据库查询完整记录（SELECT * 获取所有字段）
             conn = pymysql.connect(
                 host=os.getenv("SQLPUB_HOST"),
                 port=int(os.getenv("SQLPUB_PORT", 3307)),
@@ -157,9 +144,12 @@ if st.session_state.query_submitted and not st.session_state.df_all.empty:
                 charset="utf8mb4"
             )
             
+            # 根据量表名确定表名
+            table_name = f"{row['量表'].lower()}_record"
+            
             # 查询该记录的完整数据
             detail_df = pd.read_sql(
-                f"SELECT * FROM {detail_table} WHERE id=%(id)s",
+                f"SELECT * FROM {table_name} WHERE id=%(id)s",
                 conn,
                 params={"id": row['id']}
             )
@@ -196,16 +186,6 @@ if st.session_state.query_submitted and not st.session_state.df_all.empty:
         # 收集所有详细记录
         all_detail_data = []
         
-        # 建立量表到表名的映射
-        table_map = {
-            "ISI": "isi",
-            "FSS": "fss", 
-            "PSQI": "psqi",
-            "SAS": "sas",
-            "SDS": "sds",
-            "HAS": "has"
-        }
-        
         try:
             conn = pymysql.connect(
                 host=os.getenv("SQLPUB_HOST"),
@@ -217,16 +197,21 @@ if st.session_state.query_submitted and not st.session_state.df_all.empty:
             )
             
             for _, row in df_all.iterrows():
-                detail_table = table_map.get(row['量表'], row['量表'].lower())
+                table_name = f"{row['量表'].lower()}_record"
                 try:
                     detail_df = pd.read_sql(
-                        f"SELECT * FROM {detail_table} WHERE id=%(id)s",
+                        f"SELECT * FROM {table_name} WHERE id=%(id)s",
                         conn,
                         params={"id": row['id']}
                     )
                     if not detail_df.empty:
                         detail_df['量表来源'] = row['量表']
                         all_detail_data.append(detail_df)
+                    else:
+                        # 如果找不到详细记录，使用摘要数据
+                        temp_df = pd.DataFrame([row])
+                        temp_df['量表来源'] = row['量表']
+                        all_detail_data.append(temp_df)
                 except Exception as e:
                     st.warning(f"获取 {row['量表']} 详细记录失败: {str(e)}")
                     # 回退到摘要数据
@@ -252,3 +237,20 @@ if st.session_state.query_submitted and not st.session_state.df_all.empty:
         current_time = datetime.now().strftime("%Y%m%d%H%M")
         filename = f"{patient}_全部量表记录_{current_time}.csv"
         
+        st.download_button(
+            label="📦 合并 CSV",
+            data=buf_all,
+            file_name=filename,
+            mime="text/csv",
+            key="merge_download"
+        )
+        
+    # 添加重新查询按钮
+    if st.button("🔄 重新查询"):
+        st.session_state.query_submitted = False
+        st.session_state.patient_name = ""
+        st.session_state.df_all = pd.DataFrame()
+        st.experimental_rerun()
+
+elif not st.session_state.query_submitted:
+    st.info("请先输入患者姓名和管理员密码，再点击「确认查询」")
