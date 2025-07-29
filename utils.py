@@ -28,3 +28,19 @@ def save_result(user_id, **scores):
         if write_header:
             writer.writeheader()
         writer.writerow(scores)
+
+import streamlit as st
+
+# 当 utils.py 被 Streamlit 当作入口文件时，显示导航提示
+if __name__ == "__main__":
+    st.set_page_config(page_title="失眠多量表测评", layout="centered")
+    st.markdown(
+        """
+        <h2 style='text-align:center;'>失眠多量表测评系统</h2>
+        <p style='text-align:center;font-size:1.2rem;'>
+            👉 点击左上角 <b>“≡”</b> 展开侧边栏，选择对应量表开始测评。
+        </p>
+        """,
+        unsafe_allow_html=True
+    )
+    st.info("手机端：左上角 >> 开始测评")
