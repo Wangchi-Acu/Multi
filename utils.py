@@ -87,7 +87,8 @@ if __name__ == "__main__":
                 <div class="sub-title">测评系统</div>
                 <div class="guide">
                     <span class="arrow">👆👆👆</span><br/>
-                    点击左上角 <b>>> 开始测评</b>
+                    点击左上角 <b>“>>”</b> 展开侧边栏
+                    按照顺序开始测评吧~
                 </div>
             </div>
             """,
