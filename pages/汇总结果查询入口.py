@@ -127,14 +127,61 @@ if st.session_state.query_submitted and not st.session_state.df_all.empty:
 
     # 下载按钮
     st.subheader("📈 详细记录")
+    
+    # 建立量表到表名的映射
+    table_map = {
+        "ISI": "isi",
+        "FSS": "fss", 
+        "PSQI": "psqi",
+        "SAS": "sas",
+        "SDS": "sds",
+        "HAS": "has"
+    }
+    
     for _, row in df_all.iterrows():
         # 清理时间戳中的特殊字符
         ts_str = str(row["ts"]).replace("/", "").replace(":", "").replace(" ", "").replace("-", "") if pd.notnull(row["ts"]) else "无时间戳"
         csv_name = f"{ts_str}_{patient}_{row['量表']}.csv"
         
-        buf = io.BytesIO()
-        pd.DataFrame([row]).to_csv(buf, index=False, encoding="utf-8-sig")
-        buf.seek(0)
+        # 获取对应的详细表名
+        detail_table = table_map.get(row['量表'], row['量表'].lower())
+        
+        try:
+            # 连接数据库查询完整记录
+            conn = pymysql.connect(
+                host=os.getenv("SQLPUB_HOST"),
+                port=int(os.getenv("SQLPUB_PORT", 3307)),
+                user=os.getenv("SQLPUB_USER"),
+                password=os.getenv("SQLPUB_PWD"),
+                database=os.getenv("SQLPUB_DB"),
+                charset="utf8mb4"
+            )
+            
+            # 查询该记录的完整数据
+            detail_df = pd.read_sql(
+                f"SELECT * FROM {detail_table} WHERE id=%(id)s",
+                conn,
+                params={"id": row['id']}
+            )
+            conn.close()
+            
+            # 如果查询到数据，则使用完整数据生成CSV
+            if not detail_df.empty:
+                buf = io.BytesIO()
+                detail_df.to_csv(buf, index=False, encoding="utf-8-sig")
+                buf.seek(0)
+            else:
+                # 如果没有找到详细记录，回退到原来的单行数据
+                buf = io.BytesIO()
+                pd.DataFrame([row]).to_csv(buf, index=False, encoding="utf-8-sig")
+                buf.seek(0)
+                
+        except Exception as e:
+            # 如果查询失败，回退到原来的单行数据
+            st.warning(f"获取详细记录失败: {str(e)}")
+            buf = io.BytesIO()
+            pd.DataFrame([row]).to_csv(buf, index=False, encoding="utf-8-sig")
+            buf.seek(0)
         
         st.download_button(
             label=f"📥 下载 {row['量表']} 记录 ({row['ts'] if pd.notnull(row['ts']) else '无时间戳'})",
@@ -144,3 +191,64 @@ if st.session_state.query_submitted and not st.session_state.df_all.empty:
             key=f"{row['量表']}_{row['id']}"
         )
 
+    # 一键合并下载
+    if st.button("📦 一键合并下载全部记录"):
+        # 收集所有详细记录
+        all_detail_data = []
+        
+        # 建立量表到表名的映射
+        table_map = {
+            "ISI": "isi",
+            "FSS": "fss", 
+            "PSQI": "psqi",
+            "SAS": "sas",
+            "SDS": "sds",
+            "HAS": "has"
+        }
+        
+        try:
+            conn = pymysql.connect(
+                host=os.getenv("SQLPUB_HOST"),
+                port=int(os.getenv("SQLPUB_PORT", 3307)),
+                user=os.getenv("SQLPUB_USER"),
+                password=os.getenv("SQLPUB_PWD"),
+                database=os.getenv("SQLPUB_DB"),
+                charset="utf8mb4"
+            )
+            
+            for _, row in df_all.iterrows():
+                detail_table = table_map.get(row['量表'], row['量表'].lower())
+                try:
+                    detail_df = pd.read_sql(
+                        f"SELECT * FROM {detail_table} WHERE id=%(id)s",
+                        conn,
+                        params={"id": row['id']}
+                    )
+                    if not detail_df.empty:
+                        detail_df['量表来源'] = row['量表']
+                        all_detail_data.append(detail_df)
+                except Exception as e:
+                    st.warning(f"获取 {row['量表']} 详细记录失败: {str(e)}")
+                    # 回退到摘要数据
+                    temp_df = pd.DataFrame([row])
+                    temp_df['量表来源'] = row['量表']
+                    all_detail_data.append(temp_df)
+            
+            conn.close()
+            
+            if all_detail_data:
+                merged_df = pd.concat(all_detail_data, ignore_index=True)
+            else:
+                merged_df = df_all
+                
+        except Exception as e:
+            st.warning(f"合并下载时连接数据库失败: {str(e)}")
+            merged_df = df_all
+        
+        buf_all = io.BytesIO()
+        merged_df.to_csv(buf_all, index=False, encoding="utf-8-sig")
+        buf_all.seek(0)
+        
+        current_time = datetime.now().strftime("%Y%m%d%H%M")
+        filename = f"{patient}_全部量表记录_{current_time}.csv"
+        
