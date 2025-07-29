@@ -113,7 +113,7 @@ if st.session_state.query_submitted and not st.session_state.df_all.empty:
         "HAS": lambda x: "正常" if x <= 32 else "过度觉醒" if x is not None else "无数据"
     }
 
-    st.subheader("📊 分数 & 等级历史记录")
+    st.subheader("📊 总分 & 等级")
     
     # 按量表分组显示分数和等级
     for scale in ["ISI", "FSS", "PSQI", "SAS", "SDS", "HAS"]:
@@ -152,7 +152,7 @@ if st.session_state.query_submitted and not st.session_state.df_all.empty:
             st.markdown("---")  # 分隔线
 
     # 按量表分组显示所有详细记录
-    st.subheader("📈 详细记录历史")
+    st.subheader("📈 详细历史记录下载")
     
     # 按量表分组
     for scale in ["ISI", "FSS", "PSQI", "SAS", "SDS", "HAS"]:
