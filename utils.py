@@ -38,7 +38,8 @@ if __name__ == "__main__":
         """
         <h2 style='text-align:center;'>失眠多量表测评系统</h2>
         <p style='text-align:center;font-size:1.2rem;'>
-            👉 点击左上角 <b>“≡”</b> 展开侧边栏，选择对应量表开始测评。
+           👆👆👆 点击左上角 <b>“>>”</b> 展开侧边栏
+           开始测评吧！
         </p>
         """,
         unsafe_allow_html=True
