@@ -11,7 +11,7 @@ if 'query_submitted' not in st.session_state:
     st.session_state.query_submitted = False
 if 'patient_name' not in st.session_state:
     st.session_state.patient_name = ""
-if 'df_all' not in st.session_state:
+if 'df_all' not.deepcopy st.session_state:
     st.session_state.df_all = pd.DataFrame()
 
 with st.form("query_form"):
@@ -113,19 +113,39 @@ if st.session_state.query_submitted and not st.session_state.df_all.empty:
         "HAS": lambda x: "正常" if x <= 32 else "过度觉醒" if x is not None else "无数据"
     }
 
-    st.subheader("📊 分数 & 等级")
-    cols = st.columns(len(score_map))
-    for c, (scale, col) in zip(cols, score_map.items()):
+    st.subheader("📊 分数 & 等级历史记录")
+    
+    # 按量表分组显示分数和等级
+    for scale in ["ISI", "FSS", "PSQI", "SAS", "SDS", "HAS"]:
         df_scale = df_all[df_all["量表"] == scale]
-        if not df_scale.empty and col in df_scale.columns and not df_scale[col].isnull().all():
-            latest_record = df_scale.iloc[0]
-            val = latest_record[col]
-            grade = grade_map[scale](val)
-            c.metric(scale, f"{val}", delta=grade)
-        else:
-            c.metric(scale, "无数据", delta="无记录")
+        if not df_scale.empty:
+            st.markdown(f"#### {scale} 量表")
+            
+            # 按时间排序（最新的在上面）
+            df_scale = df_scale.sort_values("created_at", ascending=False)
+            
+            # 创建多列显示历史记录
+            cols = st.columns(min(len(df_scale), 5))  # 最多显示5条记录，避免列数过多
+            
+            for i, (_, row) in enumerate(df_scale.head(5).iterrows()):  # 只显示最近5次
+                if i < len(cols):
+                    with cols[i]:
+                        col_score = score_map[scale]
+                        score_val = row[col_score] if col_score in row and pd.notnull(row[col_score]) else "无数据"
+                        
+                        # 格式化时间显示
+                        if pd.notnull(row["ts"]):
+                            display_time = row["ts"]
+                        else:
+                            display_time = row["created_at"].strftime("%m-%d") if pd.notnull(row["created_at"]) else "无日期"
+                        
+                        # 显示分数和等级
+                        grade = grade_map[scale](score_val) if score_val != "无数据" else "无数据"
+                        st.metric(f"{display_time}", f"{score_val}", delta=grade)
+            
+            st.markdown("---")  # 分隔线
 
-    # 按量表分组显示所有记录
+    # 按量表分组显示所有详细记录
     st.subheader("📈 详细记录历史")
     
     # 按量表分组
