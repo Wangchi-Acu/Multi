@@ -87,8 +87,12 @@ def calculate_psqi(data):
 # ---------- 3. Streamlit 页面 ----------
 st.set_page_config(page_title="匹兹堡睡眠质量指数(PSQI)", layout="centered")
 st.image("jsszyylogo.png", width=500)
-st.markdown("<h1 style='font-size: 36px; text-align: left; background-color: #2c3e50; color: white; padding: 10px 20px; border-radius: 8px;'>江苏省中医院针灸科</h1>", unsafe_allow_html=True)
-st.markdown("<h1 style='font-size: 32px; text-align: left; background-color: #34495e; color: white; padding: 8px 20px; border-radius: 8px; margin-top: 5px;'>失眠专病门诊</h1>", unsafe_allow_html=True)
+st.markdown("""
+<div style='background-color: #1f77b4; color: white; padding: 20px; border-radius: 10px; text-align: center;'>
+    <h1 style='font-size: 36px; margin: 0;'>江苏省中医院针灸科</h1>
+    <h1 style='font-size: 32px; margin: 10px 0 0 0;'>失眠专病门诊</h1>
+</div>
+""", unsafe_allow_html=True)
 st.markdown("<h3 style='color:#555555;'>匹兹堡睡眠质量指数（PSQI）在线问卷</h3>", unsafe_allow_html=True)
 st.markdown("> 请根据 **最近一个月** 的实际情况填写")
 
