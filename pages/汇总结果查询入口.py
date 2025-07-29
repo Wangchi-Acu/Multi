@@ -6,66 +6,92 @@ from datetime import datetime
 st.set_page_config(page_title="患者查询", layout="wide")
 st.title("📋 患者量表查询")
 
+# 初始化 session state
+if 'query_submitted' not in st.session_state:
+    st.session_state.query_submitted = False
+if 'patient_name' not in st.session_state:
+    st.session_state.patient_name = ""
+if 'df_all' not in st.session_state:
+    st.session_state.df_all = pd.DataFrame()
+
 with st.form("query_form"):
     name, pwd = st.columns([3, 1])
-    patient = name.text_input("患者姓名").strip()
+    patient = name.text_input("患者姓名", value=st.session_state.patient_name).strip()
     password = pwd.text_input("管理员密码", type="password")
     submitted = st.form_submit_button("确认查询")
 
+# 处理查询
 if submitted and patient and password:
     if password.strip() != "12024168":
         st.error("密码错误")
         st.stop()
 
     # ---------- 数据库查询 ----------
-    conn = pymysql.connect(
-        host=os.getenv("SQLPUB_HOST"),
-        port=int(os.getenv("SQLPUB_PORT", 3307)),
-        user=os.getenv("SQLPUB_USER"),
-        password=os.getenv("SQLPUB_PWD"),
-        database=os.getenv("SQLPUB_DB"),
-        charset="utf8mb4"
-    )
-    
-    tables = ["isi_record", "fss_record", "psqi_record", "sas_record", "sds_record", "has_record"]
-    dfs = []
-    for tbl in tables:
-        try:
-            # 明确指定需要的列，避免列名冲突
-            columns_to_select = "id, name, ts, created_at"
-            if tbl == "isi_record":
-                columns_to_select += ", total_score"
-            elif tbl == "fss_record":
-                columns_to_select += ", total_score"
-            elif tbl == "psqi_record":
-                columns_to_select += ", total_score"
-            elif tbl == "sas_record":
-                columns_to_select += ", std_score"
-            elif tbl == "sds_record":
-                columns_to_select += ", std_score"
-            elif tbl == "has_record":
-                columns_to_select += ", total_score"
-            
-            df = pd.read_sql(
-                f"SELECT {columns_to_select} FROM {tbl} WHERE name=%(name)s ORDER BY created_at DESC",
-                conn,
-                params={"name": patient}
-            )
-            df["量表"] = tbl.replace("_record", "").upper()
-            dfs.append(df)
-        except Exception as e:
-            st.warning(f"查询表 {tbl} 时出错: {str(e)}")
-    conn.close()
-    
-    df_all = pd.concat(dfs, ignore_index=True) if dfs else pd.DataFrame()
+    try:
+        conn = pymysql.connect(
+            host=os.getenv("SQLPUB_HOST"),
+            port=int(os.getenv("SQLPUB_PORT", 3307)),
+            user=os.getenv("SQLPUB_USER"),
+            password=os.getenv("SQLPUB_PWD"),
+            database=os.getenv("SQLPUB_DB"),
+            charset="utf8mb4"
+        )
+        
+        tables = ["isi_record", "fss_record", "psqi_record", "sas_record", "sds_record", "has_record"]
+        dfs = []
+        for tbl in tables:
+            try:
+                # 明确指定需要的列，避免列名冲突
+                columns_to_select = "id, name, ts, created_at"
+                if tbl == "isi_record":
+                    columns_to_select += ", total_score"
+                elif tbl == "fss_record":
+                    columns_to_select += ", total_score"
+                elif tbl == "psqi_record":
+                    columns_to_select += ", total_score"
+                elif tbl == "sas_record":
+                    columns_to_select += ", std_score"
+                elif tbl == "sds_record":
+                    columns_to_select += ", std_score"
+                elif tbl == "has_record":
+                    columns_to_select += ", total_score"
+                
+                df = pd.read_sql(
+                    f"SELECT {columns_to_select} FROM {tbl} WHERE name=%(name)s ORDER BY created_at DESC",
+                    conn,
+                    params={"name": patient}
+                )
+                df["量表"] = tbl.replace("_record", "").upper()
+                dfs.append(df)
+            except Exception as e:
+                st.warning(f"查询表 {tbl} 时出错: {str(e)}")
+        conn.close()
+        
+        df_all = pd.concat(dfs, ignore_index=True) if dfs else pd.DataFrame()
 
-    if df_all.empty:
-        st.warning("该患者暂无记录")
+        if df_all.empty:
+            st.warning("该患者暂无记录")
+            st.session_state.query_submitted = False
+            st.session_state.patient_name = ""
+            st.session_state.df_all = pd.DataFrame()
+        else:
+            # 保存查询结果到 session state
+            st.session_state.query_submitted = True
+            st.session_state.patient_name = patient
+            st.session_state.df_all = df_all
+            
+    except Exception as e:
+        st.error(f"数据库连接失败: {str(e)}")
         st.stop()
 
+# 显示查询结果（如果有的话）
+if st.session_state.query_submitted and not st.session_state.df_all.empty:
+    df_all = st.session_state.df_all
+    patient = st.session_state.patient_name
+    
     # 分数+等级映射
     score_map = {
-        "ISI": "total",
+        "ISI": "total_score",
         "FSS": "total_score",
         "PSQI": "total_score",
         "SAS": "std_score",
@@ -103,7 +129,7 @@ if submitted and patient and password:
     st.subheader("📈 详细记录")
     for _, row in df_all.iterrows():
         # 清理时间戳中的特殊字符
-        ts_str = str(row["ts"]).replace("/", "").replace(":", "").replace(" ", "") if pd.notnull(row["ts"]) else "无时间戳"
+        ts_str = str(row["ts"]).replace("/", "").replace(":", "").replace(" ", "").replace("-", "") if pd.notnull(row["ts"]) else "无时间戳"
         csv_name = f"{ts_str}_{patient}_{row['量表']}.csv"
         
         buf = io.BytesIO()
@@ -131,7 +157,16 @@ if submitted and patient and password:
             label="📦 合并 CSV",
             data=buf_all,
             file_name=filename,
-            mime="text/csv"
+            mime="text/csv",
+            key="merge_download"
         )
-else:
+        
+    # 添加重新查询按钮
+    if st.button("🔄 重新查询"):
+        st.session_state.query_submitted = False
+        st.session_state.patient_name = ""
+        st.session_state.df_all = pd.DataFrame()
+        st.experimental_rerun()
+
+elif not st.session_state.query_submitted:
     st.info("请先输入患者姓名和管理员密码，再点击「确认查询」")
