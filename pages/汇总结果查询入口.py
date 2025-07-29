@@ -144,29 +144,3 @@ if st.session_state.query_submitted and not st.session_state.df_all.empty:
             key=f"{row['量表']}_{row['id']}"
         )
 
-    # 一键合并下载
-    if st.button("📦 一键合并下载全部记录"):
-        buf_all = io.BytesIO()
-        df_all.to_csv(buf_all, index=False, encoding="utf-8-sig")
-        buf_all.seek(0)
-        
-        current_time = datetime.now().strftime("%Y%m%d%H%M")
-        filename = f"{patient}_全部量表记录_{current_time}.csv"
-        
-        st.download_button(
-            label="📦 合并 CSV",
-            data=buf_all,
-            file_name=filename,
-            mime="text/csv",
-            key="merge_download"
-        )
-        
-    # 添加重新查询按钮
-    if st.button("🔄 重新查询"):
-        st.session_state.query_submitted = False
-        st.session_state.patient_name = ""
-        st.session_state.df_all = pd.DataFrame()
-        st.experimental_rerun()
-
-elif not st.session_state.query_submitted:
-    st.info("请先输入患者姓名和管理员密码，再点击「确认查询」")
