@@ -33,8 +33,9 @@ import streamlit as st
 
 # 当 utils.py 被 Streamlit 当作入口文件时，显示导航提示
 # ---------- 美化导航提示 ----------
-st.image("jsszyylogo.png", width=500, use_container_width=True)
+
 if __name__ == "__main__":
+    st.image("jsszyylogo.png", width=500, use_container_width=True)
     st.set_page_config(
         page_title="针灸科失眠专病门诊量表测评系统",
         layout="centered",
@@ -52,7 +53,7 @@ if __name__ == "__main__":
                 box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             }
             .big-title {
-                font-size: 2.4rem;
+                font-size: 2.2rem;
                 font-weight: 700;
                 color: #0d47a1;
                 margin-bottom: 0.5rem;
@@ -79,12 +80,7 @@ if __name__ == "__main__":
         """,
         unsafe_allow_html=True
     )
-    .big-title {
-    font-size: 2.8rem;
-    font-weight: 700;
-    color: #0d47a1;
-    margin-bottom: 0.5rem;
-}
+
     with st.container():
         st.markdown(
             """
