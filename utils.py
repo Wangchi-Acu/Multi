@@ -33,9 +33,10 @@ import streamlit as st
 
 # 当 utils.py 被 Streamlit 当作入口文件时，显示导航提示
 # ---------- 美化导航提示 ----------
+st.image("jsszyylogo.png", width=500, use_column_width="never")
 if __name__ == "__main__":
     st.set_page_config(
-        page_title="失眠专病门诊量表测评系统",
+        page_title="针灸科失眠专病门诊量表测评系统",
         layout="centered",
         initial_sidebar_state="collapsed"
     )
