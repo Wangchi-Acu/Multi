@@ -88,7 +88,7 @@ def calculate_psqi(data):
 st.set_page_config(page_title="匹兹堡睡眠质量指数(PSQI)", layout="centered")
 st.image("jsszyylogo.png", width=500)
 st.markdown("""
-<div style='color: #000000; padding: 25px; border-radius: 15px; text-align: left;'>
+<div style='color: #000000; padding: 5px; border-radius: 15px; text-align: left;'>
     <h1 style='font-size: 36px; margin: 0; font-weight: 700;'>江苏省中医院针灸科</h1>
     <h1 style='font-size: 32px; margin: 0px 0 0 0; font-weight: 600;'>失眠专病门诊</h1>
 </div>
