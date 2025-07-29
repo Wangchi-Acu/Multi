@@ -34,7 +34,7 @@ if submitted and patient and password:
             # 明确指定需要的列，避免列名冲突
             columns_to_select = "id, name, ts, created_at"
             if tbl == "isi_record":
-                columns_to_select += ", total"
+                columns_to_select += ", total_score"
             elif tbl == "fss_record":
                 columns_to_select += ", total_score"
             elif tbl == "psqi_record":
