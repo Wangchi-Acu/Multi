@@ -3,7 +3,7 @@ import pandas as pd
 import pymysql, os, io
 from datetime import datetime
 
-st.set_page_config(page_title="量表汇总结果查询", layout="wide")
+st.set_page_config(page_title="汇总结果查询", layout="wide")
 st.title("📋 量表汇总结果查询")
 
 # 初始化 session state
