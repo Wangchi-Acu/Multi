@@ -7,7 +7,7 @@ st.set_page_config(page_title="患者查询", layout="wide")
 st.title("📋 患者量表查询")
 
 # 初始化 session state
-if 'query_submitted' not not st.session_state:
+if 'query_submitted' not in st.session_state:
     st.session_state.query_submitted = False
 if 'patient_name' not in st.session_state:
     st.session_state.patient_name = ""
