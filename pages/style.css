@@ -1,14 +1,9 @@
 import streamlit as st
-# 在应用开始时添加
-with st.sidebar:
-    st.image("jsszyy.png", width=200)  #  替换为你的logo路径
-    st.title("📋 量表管理系统")
-    st.markdown("---")
 
-# 设置页面配置
+# ⚠️ 重要：set_page_config 必须在所有其他 Streamlit 命令之前
 st.set_page_config(page_title="患者量表查询", layout="wide")
 
-# 自定义CSS美化侧边栏
+# 自定义CSS美化侧边栏 - 必须在 set_page_config 之后
 st.markdown("""
 <style>
 /* 侧边栏背景 */
@@ -19,7 +14,7 @@ section[data-testid="stSidebar"] {
 }
 
 /* 侧边栏标题 */
-section[data-testid="stSidebar"] .stMarkdown h1 {
+section[data-testid="stSidebar"] h1 {
     color: #2c3e50;
     font-family: 'Arial', sans-serif;
     font-size: 22px;
@@ -80,42 +75,29 @@ section[data-testid="stSidebar"]::-webkit-scrollbar-thumb:hover {
     background: #6c757d;
 }
 
-/* 侧边栏页脚 */
+/* 页脚 */
 .sidebar-footer {
-    position: fixed;
-    bottom: 20px;
-    left: 20px;
-    right: 20px;
     text-align: center;
     color: #6c757d;
     font-size: 12px;
     padding: 10px;
-    background: rgba(255, 255, 255, 0.8);
-    border-radius: 8px;
+    margin-top: 20px;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# 侧边栏内容
+# 侧边栏内容 - 只使用一次 st.sidebar
 with st.sidebar:
+    # Logo（如果有的话）
+    try:
+        st.image("jsszyy.png", width=200)
+    except:
+        pass  # 如果图片不存在就不显示
+    
     st.title("📋 量表管理系统")
     st.markdown("---")
     
-    # 可以在这里添加一些图标或说明文字
-    st.markdown("### 📊 量表列表")
-    st.markdown("请选择需要查询的量表")
-    
-    st.markdown("---")
-    st.markdown("### ℹ️ 帮助信息")
-    st.info("💡 提示：点击左侧菜单切换不同量表")
-
-# 你的主应用内容
-st.title("患者量表查询系统")
-st.write("欢迎使用量表查询系统！")
-
-with st.sidebar:
-    st.title("📋 量表管理系统")
-    st.markdown("---")
+    # 量表导航
     st.markdown("### 📊 量表导航")
     st.page_link("pages/量表① PSQI.py", label="😴 PSQI 量表", icon="1️⃣")
     st.page_link("pages/量表②ISI.py", label="😴 ISI 量表", icon="2️⃣")
@@ -123,14 +105,33 @@ with st.sidebar:
     st.page_link("pages/量表④ FSS.py", label="😰 FSS 量表", icon="4️⃣")
     st.page_link("pages/量表⑤ SAS.py", label="😔 SAS 量表", icon="5️⃣")
     st.page_link("pages/量表⑥ SDS.py", label="🏥 SDS 量表", icon="6️⃣")
+    
     st.markdown("---")
-
-with st.sidebar:
+    
+    # 帮助信息
+    st.markdown("### ℹ️ 帮助信息")
+    st.info("💡 提示：点击左侧菜单切换不同量表")
+    
+    # 页脚
     st.markdown("---")
     st.markdown("""
-    <div style='text-align: center; color: #6c757d; font-size: 12px;'>
+    <div class="sidebar-footer">
         <p>🏥 量表查询系统</p>
         <p>版本: v1.0.0</p>
         <p>© 2025 Wang Chi</p>
     </div>
     """, unsafe_allow_html=True)
+
+# 主页面内容
+st.title("🏥 患者量表查询系统")
+st.write("欢迎使用量表查询系统！")
+
+# 你可以在这里添加主页面的其他内容
+st.markdown("---")
+st.markdown("### 📋 使用说明")
+st.markdown("""
+1. 请在左侧导航栏选择需要查询的量表
+2. 每个量表页面可以进行相应的查询操作
+3. 查询结果可以导出为 CSV 文件
+4. 如有疑问请联系系统管理员
+""")
