@@ -79,7 +79,12 @@ if __name__ == "__main__":
         """,
         unsafe_allow_html=True
     )
-
+    .big-title {
+    font-size: 2.8rem;
+    font-weight: 700;
+    color: #0d47a1;
+    margin-bottom: 0.5rem;
+}
     with st.container():
         st.markdown(
             """
