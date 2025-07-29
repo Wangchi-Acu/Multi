@@ -4,7 +4,7 @@ import pymysql, os, io
 from datetime import datetime
 
 st.set_page_config(page_title="患者查询", layout="wide")
-st.title("📋 患者量表查询")
+st.title("📋 量表结果查询")
 
 # 初始化 session state
 if 'query_submitted' not in st.session_state:
@@ -16,7 +16,7 @@ if 'df_all' not in st.session_state:
 
 with st.form("query_form"):
     name, pwd = st.columns([3, 1])
-    patient = name.text_input("患者姓名", value=st.session_state.patient_name).strip()
+    patient = name.text_input("姓名", value=st.session_state.patient_name).strip()
     password = pwd.text_input("管理员密码", type="password")
     submitted = st.form_submit_button("确认查询")
 
