@@ -1,0 +1,136 @@
+import streamlit as st
+# 在应用开始时添加
+with st.sidebar:
+    st.image("jsszyy.png", width=200)  #  替换为你的logo路径
+    st.title("📋 量表管理系统")
+    st.markdown("---")
+
+# 设置页面配置
+st.set_page_config(page_title="患者量表查询", layout="wide")
+
+# 自定义CSS美化侧边栏
+st.markdown("""
+<style>
+/* 侧边栏背景 */
+section[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
+    border-right: 1px solid #dee2e6;
+    padding-top: 20px;
+}
+
+/* 侧边栏标题 */
+section[data-testid="stSidebar"] .stMarkdown h1 {
+    color: #2c3e50;
+    font-family: 'Arial', sans-serif;
+    font-size: 22px;
+    text-align: center;
+    margin-bottom: 20px;
+    font-weight: 600;
+}
+
+/* 侧边栏导航链接 */
+section[data-testid="stSidebar"] a {
+    color: #495057;
+    font-size: 15px;
+    padding: 12px 20px;
+    margin: 4px 10px;
+    border-radius: 10px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    text-decoration: none;
+    display: block;
+}
+
+/* 鼠标悬停效果 */
+section[data-testid="stSidebar"] a:hover {
+    background: linear-gradient(90deg, #1f77b4 0%, #4c9cff 100%);
+    color: white !important;
+    transform: translateX(8px);
+    box-shadow: 0 4px 12px rgba(31, 119, 180, 0.2);
+}
+
+/* 当前选中页面 */
+section[data-testid="stSidebar"] a:focus {
+    background: linear-gradient(90deg, #1f77b4 0%, #4c9cff 100%);
+    color: white !important;
+    font-weight: 600;
+}
+
+/* 分隔线 */
+section[data-testid="stSidebar"] hr {
+    margin: 15px 20px;
+    border-color: #e9ecef;
+}
+
+/* 滚动条美化 */
+section[data-testid="stSidebar"]::-webkit-scrollbar {
+    width: 8px;
+}
+
+section[data-testid="stSidebar"]::-webkit-scrollbar-track {
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+section[data-testid="stSidebar"]::-webkit-scrollbar-thumb {
+    background: #adb5bd;
+    border-radius: 4px;
+}
+
+section[data-testid="stSidebar"]::-webkit-scrollbar-thumb:hover {
+    background: #6c757d;
+}
+
+/* 侧边栏页脚 */
+.sidebar-footer {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+    text-align: center;
+    color: #6c757d;
+    font-size: 12px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 8px;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# 侧边栏内容
+with st.sidebar:
+    st.title("📋 量表管理系统")
+    st.markdown("---")
+    
+    # 可以在这里添加一些图标或说明文字
+    st.markdown("### 📊 量表列表")
+    st.markdown("请选择需要查询的量表")
+    
+    st.markdown("---")
+    st.markdown("### ℹ️ 帮助信息")
+    st.info("💡 提示：点击左侧菜单切换不同量表")
+
+# 你的主应用内容
+st.title("患者量表查询系统")
+st.write("欢迎使用量表查询系统！")
+
+with st.sidebar:
+    st.title("📋 量表管理系统")
+    st.markdown("---")
+    st.markdown("### 📊 量表导航")
+    st.page_link("pages/量表① PSQI.py", label="😴 PSQI 量表", icon="1️⃣")
+    st.page_link("pages/量表②ISI.py", label="😴 ISI 量表", icon="2️⃣")
+    st.page_link("pages/量表③ HAS.py", label="😴 HAS 量表", icon="3️⃣")
+    st.page_link("pages/量表④ FSS.py", label="😰 FSS 量表", icon="4️⃣")
+    st.page_link("pages/量表⑤ SAS.py", label="😔 SAS 量表", icon="5️⃣")
+    st.page_link("pages/量表⑥ SDS.py", label="🏥 SDS 量表", icon="6️⃣")
+    st.markdown("---")
+
+with st.sidebar:
+    st.markdown("---")
+    st.markdown("""
+    <div style='text-align: center; color: #6c757d; font-size: 12px;'>
+        <p>🏥 量表查询系统</p>
+        <p>版本: v1.0.0</p>
+        <p>© 2025 Wang Chi</p>
+    </div>
+    """, unsafe_allow_html=True)
