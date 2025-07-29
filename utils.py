@@ -84,8 +84,8 @@ if __name__ == "__main__":
         st.markdown(
             """
             <div class="main-wrapper">
-                <div class="big-title">失眠专病门诊量表</div>
-                <div class="sub-title">测评系统</div>
+                <div class="big-title">针灸科失眠专病门诊</div>
+                <div class="sub-title">量表测评系统</div>
                 <div class="guide">
                     <span class="arrow">👆👆👆</span><br/>
                     点击左上角 <b>&gt;&gt;</b> 展开侧边栏<br/>
