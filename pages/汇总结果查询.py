@@ -3,8 +3,8 @@ import pandas as pd
 import pymysql, os, io
 from datetime import datetime
 
-st.set_page_config(page_title="患者查询", layout="wide")
-st.title("📋 量表结果查询")
+st.set_page_config(page_title="量表汇总结果查询", layout="wide")
+st.title("📋 量表汇总结果查询")
 
 # 初始化 session state
 if 'query_submitted' not in st.session_state:
