@@ -7,13 +7,18 @@ import time
 # 自定义CSS样式
 st.markdown("""
 <style>
-/* 增大滑块标签字体大小 */
+/* 增大所有标签字体大小 */
 div[data-baseweb="select"] div, 
 div[data-baseweb="slider"] div,
 .stRadio > label > div,
 .stDateInput > label,
 .stTextInput > label,
-.stNumberInput > label {
+.stNumberInput > label,
+.stMultiSelect > label,
+.stSelectbox > label,
+.stSlider > label,
+.stForm > div > div:first-child > div,
+.stForm > div > div:first-child {
     font-size: 18px !important;
     font-weight: 500;
 }
@@ -30,6 +35,7 @@ div[data-baseweb="slider"] > div > div > div {
     border-bottom: 2px solid #4a86e8;
     padding-bottom: 0.5rem;
     margin-bottom: 1.5rem;
+    font-size: 18px !important;
 }
 
 /* 按钮样式 */
@@ -49,6 +55,24 @@ div[data-baseweb="slider"] > div > div > div {
     color: #555555;
     cursor: not-allowed;
 }
+
+/* 竖向滑块容器 */
+.vertical-sliders {
+    display: flex;
+    gap: 20px;
+    margin-top: 10px;
+}
+
+/* 竖向滑块样式 */
+.vertical-slider {
+    flex: 1;
+    text-align: center;
+}
+
+.vertical-slider h4 {
+    margin-bottom: 10px;
+    font-size: 18px;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -62,12 +86,12 @@ st.markdown("""
 """, unsafe_allow_html=True)
 st.title("🛏️ 睡眠日记")
 
-# 创建时间选项（每15分钟一个选项）
+# 创建时间选项（每5分钟一个选项）
 def generate_time_slots(start_hour, end_hour):
     slots = []
     for h in range(start_hour, end_hour + 1):
         hour = h % 24
-        for m in [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]:
+        for m in range(0, 60, 5):
             slots.append(f"{hour:02d}:{m:02d}")
     return slots
 
@@ -75,14 +99,6 @@ def generate_time_slots(start_hour, end_hour):
 daytime_slots = generate_time_slots(6, 20)  # 白天时间：06:00-20:00
 evening_slots = generate_time_slots(20, 26)  # 晚上时间：20:00-02:00（26=02:00+24）
 morning_slots = generate_time_slots(2, 12)   # 早晨时间：02:00-12:00
-
-# 确保默认值在选项中
-for slot in ["14:00", "14:15", "14:30"]:
-    if slot not in daytime_slots: daytime_slots.append(slot)
-for slot in ["06:30", "06:45", "07:00"]:
-    if slot not in morning_slots: morning_slots.append(slot)
-for slot in ["22:00", "22:15", "23:00"]:
-    if slot not in evening_slots: evening_slots.append(slot)
 
 # 日期处理
 today = date.today()
@@ -106,7 +122,7 @@ with st.form("sleep_diary"):
     st.subheader("日间活动记录")
     col1, col2 = st.columns(2)
     nap_start = col1.select_slider("昨日白天小睡开始时间", options=daytime_slots, value="14:00")
-    nap_end = col2.select_slider("昨日白天小睡结束时间", options=daytime_slots, value="14:15")
+    nap_end = col2.select_slider("昨日白天小睡结束时间", options=daytime_slots, value="14:05")
     
     caffeine = st.text_input("昨日咖啡因摄入（例：咖啡，8:00/2杯）", value="无")
     alcohol = st.text_input("昨日酒精摄入（例：啤酒，19:00/1瓶）", value="无")
@@ -136,7 +152,7 @@ with st.form("sleep_diary"):
     
     st.subheader("夜间睡眠记录")
     bed_time = st.select_slider("昨晚上床时间", options=evening_slots, value="23:00")
-    try_sleep_time = st.select_slider("试图入睡时间", options=evening_slots, value="23:15")
+    try_sleep_time = st.select_slider("试图入睡时间", options=evening_slots, value="23:05")
     
     col3, col4 = st.columns(2)
     sleep_latency = col3.number_input("入睡所需时间（分钟）", 0, 180, 30)
@@ -147,9 +163,21 @@ with st.form("sleep_diary"):
     st.subheader("晨间记录")
     col5, col6 = st.columns(2)
     final_wake_time = col5.select_slider("早晨最终醒来时间", options=morning_slots, value="06:30")
-    get_up_time = col6.select_slider("起床时间", options=morning_slots, value="06:45")
+    get_up_time = col6.select_slider("起床时间", options=morning_slots, value="06:35")
     
-    total_sleep_hours = st.number_input("总睡眠时间（小时）", 0.0, 24.0, 7.0, 0.1)
+    # 总睡眠时间 - 改为小时和分钟两个竖向滑动选择
+    st.markdown('<div class="vertical-sliders">', unsafe_allow_html=True)
+    st.markdown("**总睡眠时间**")
+    
+    col_sleep1, col_sleep2 = st.columns(2)
+    with col_sleep1:
+        sleep_hours = st.slider("小时", 0, 12, 7, format="%d小时", key="sleep_hours")
+    with col_sleep2:
+        sleep_minutes = st.slider("分钟", 0, 55, 0, step=5, format="%d分钟", key="sleep_minutes")
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    total_sleep_hours = sleep_hours + (sleep_minutes / 60.0)
     
     # 睡眠质量评分
     sleep_quality = st.radio("睡眠质量评分", ["优", "良", "中", "差", "很差"], horizontal=True, index=2)
