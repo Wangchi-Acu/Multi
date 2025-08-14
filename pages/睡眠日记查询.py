@@ -3,6 +3,7 @@ import pymysql
 import pandas as pd
 import plotly.express as px
 from datetime import date, timedelta
+import os
 
 st.set_page_config(page_title="睡眠日记查询", layout="wide")
 st.title("📊 睡眠日记查询")
