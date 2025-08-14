@@ -53,6 +53,13 @@ div[data-baseweb="slider"] > div > div > div {
 """, unsafe_allow_html=True)
 
 st.set_page_config(page_title="睡眠日记", layout="centered")
+st.image("jsszyylogo.png", width=500)
+st.markdown("""
+<div style='color: #000000; padding: 2px; border-radius: 15px; text-align: left;'>
+    <h1 style='font-size: 37px; margin: 0; font-weight: 700;'>江苏省中医院针灸科</h1>
+    <h1 style='font-size: 32px; margin: -15px 0 0 0; font-weight: 600;'>失眠专病门诊</h1>
+</div>
+""", unsafe_allow_html=True)
 st.title("🛏️ 国际标准睡眠日记（核心版）")
 
 # 创建时间选项（每15分钟一个选项）
