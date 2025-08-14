@@ -19,7 +19,7 @@ div[data-baseweb="slider"] div,
 .stSlider > label,
 .stForm > div > div:first-child > div,
 .stForm > div > div:first-child {
-    font-size: 18px !important;
+    font-size: 22px !important;
     font-weight: 500;
 }
 
