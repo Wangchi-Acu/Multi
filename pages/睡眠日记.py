@@ -19,7 +19,7 @@ div[data-baseweb="slider"] div,
 .stSlider > label,
 .stForm > div > div:first-child > div,
 .stForm > div > div:first-child {
-    font-size: 22px !important;
+    font-size: 18px !important;
     font-weight: 500;
 }
 
@@ -254,8 +254,8 @@ if submitted:
             success_msg = st.success(f"{record_date} 睡眠日记已成功保存！")
             time.sleep(2)  # 显示2秒
             
-            # 重置表单按钮
-            st.experimental_rerun()
+            # 修复点：使用 st.rerun() 替代 st.experimental_rerun()
+            st.rerun()
                 
         except Exception as e:
             st.error(f"保存失败: {str(e)}")
