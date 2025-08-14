@@ -60,7 +60,7 @@ st.markdown("""
     <h1 style='font-size: 32px; margin: -15px 0 0 0; font-weight: 600;'>失眠专病门诊</h1>
 </div>
 """, unsafe_allow_html=True)
-st.title("🛏️ 国际标准睡眠日记（核心版）")
+st.title("🛏️ 睡眠日记")
 
 # 创建时间选项（每15分钟一个选项）
 def generate_time_slots(start_hour, end_hour):
