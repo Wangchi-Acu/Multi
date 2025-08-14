@@ -1,12 +1,54 @@
 import streamlit as st
 import pymysql
 import os
-from datetime import date
+from datetime import date, timedelta
+import time
+
+# 自定义CSS样式
+st.markdown("""
+<style>
+/* 增大滑块标签字体大小 */
+div[data-baseweb="select"] div, 
+div[data-baseweb="slider"] div,
+.stRadio > label > div,
+.stDateInput > label,
+.stTextInput > label,
+.stNumberInput > label {
+    font-size: 18px !important;
+    font-weight: 500;
+}
+
+/* 增大滑块值显示 */
+div[data-baseweb="slider"] > div > div > div {
+    font-size: 20px !important;
+    font-weight: bold;
+    color: #1f77b4;
+}
+
+/* 表单标题样式 */
+.stForm > div > div:first-child {
+    border-bottom: 2px solid #4a86e8;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+/* 按钮样式 */
+.stButton > button {
+    font-size: 18px;
+    padding: 0.5rem 1.5rem;
+    background-color: #4a86e8;
+    color: white;
+    border-radius: 8px;
+    border: none;
+    font-weight: bold;
+}
+</style>
+""", unsafe_allow_html=True)
 
 st.set_page_config(page_title="睡眠日记", layout="centered")
 st.title("🛏️ 国际标准睡眠日记（核心版）")
 
-# 创建时间选项（每15分钟一个选项，减少数量）
+# 创建时间选项（每15分钟一个选项）
 def generate_time_slots(start_hour, end_hour):
     slots = []
     for h in range(start_hour, end_hour + 1):
@@ -21,17 +63,27 @@ evening_slots = generate_time_slots(20, 26)  # 晚上时间：20:00-02:00（26=0
 morning_slots = generate_time_slots(2, 12)   # 早晨时间：02:00-12:00
 
 # 确保默认值在选项中
-if "14:00" not in daytime_slots: daytime_slots.append("14:00")
-if "14:15" not in daytime_slots: daytime_slots.append("14:15")  # 添加备用值
-if "06:30" not in morning_slots: morning_slots.append("06:30")
-if "06:45" not in morning_slots: morning_slots.append("06:45")  # 添加备用值
-if "23:00" not in evening_slots: evening_slots.append("23:00")
-if "22:00" not in evening_slots: evening_slots.append("22:00")
+for slot in ["14:00", "14:15", "14:30"]:
+    if slot not in daytime_slots: daytime_slots.append(slot)
+for slot in ["06:30", "06:45", "07:00"]:
+    if slot not in morning_slots: morning_slots.append(slot)
+for slot in ["22:00", "22:15", "23:00"]:
+    if slot not in evening_slots: evening_slots.append(slot)
+
+# 日期处理
+today = date.today()
+yesterday = today - timedelta(days=1)
 
 # 创建表单
 with st.form("sleep_diary"):
+    # 姓名和日期部分
     name = st.text_input("姓名", placeholder="请输入您的姓名")
-    record_date = st.date_input("记录日期", date.today())
+    
+    col_date1, col_date2 = st.columns(2)
+    # 记录日期（日记内容对应的日期，默认为昨天）
+    record_date = col_date1.date_input("记录日期（睡眠日期）", yesterday)
+    # 填写日期（提交日记的日期，默认为今天）
+    entry_date = col_date2.date_input("填写日期", today)
     
     st.subheader("日间活动记录")
     col1, col2 = st.columns(2)
@@ -47,7 +99,8 @@ with st.form("sleep_diary"):
     med_dose = med_col2.text_input("剂量", placeholder="0mg")
     med_time = med_col3.select_slider("服用时间", options=evening_slots, value="22:00")
     
-    daytime_mood = st.radio("昨日日间情绪状态", ["很差", "差", "一般", "好", "很好"], horizontal=True, index=2)
+    # 更新为优、良、中、差、很差
+    daytime_mood = st.radio("昨日日间情绪状态", ["优", "良", "中", "差", "很差"], horizontal=True, index=2)
     
     sleep_interference = ";".join(
         st.multiselect("昨晚干扰睡眠因素（可多选）", ["噪音", "疼痛", "压力", "温度", "光线", "其他"])
@@ -70,10 +123,11 @@ with st.form("sleep_diary"):
     
     total_sleep_hours = st.number_input("总睡眠时间（小时）", 0.0, 24.0, 7.0, 0.1)
     
-    sleep_quality = st.radio("睡眠质量评分", ["很差", "差", "一般", "好", "很好"], horizontal=True, index=2)
-    morning_feeling = st.radio("晨起后感觉", ["差", "一般", "好"], horizontal=True, index=1)
+    # 更新为优、良、中、差、很差
+    sleep_quality = st.radio("睡眠质量评分", ["优", "良", "中", "差", "很差"], horizontal=True, index=2)
+    morning_feeling = st.radio("晨起后感觉", ["优", "良", "中", "差", "很差"], horizontal=True, index=1)
     
-    # 确保提交按钮在表单内部
+    # 提交按钮
     submitted = st.form_submit_button("保存日记")
 
 # 数据库连接和保存逻辑
@@ -84,7 +138,8 @@ if submitted:
         try:
             record = {
                 "name": name,
-                "record_date": record_date.isoformat(),
+                "record_date": record_date.isoformat(),  # 睡眠日期
+                "entry_date": entry_date.isoformat(),    # 填写日期
                 "nap_start": nap_start,
                 "nap_end": nap_end,
                 "caffeine": caffeine,
@@ -117,24 +172,33 @@ if submitted:
             
             sql = """
             INSERT INTO sleep_diary
-            (name, record_date, nap_start, nap_end, caffeine, alcohol, med_name, med_dose, med_time,
-             daytime_mood, sleep_interference, bed_time, try_sleep_time,
-             sleep_latency, night_awake_count, night_awake_total,
-             final_wake_time, get_up_time, total_sleep_hours,
+            (name, record_date, entry_date, nap_start, nap_end, caffeine, alcohol, 
+             med_name, med_dose, med_time, daytime_mood, sleep_interference, 
+             bed_time, try_sleep_time, sleep_latency, night_awake_count, 
+             night_awake_total, final_wake_time, get_up_time, total_sleep_hours,
              sleep_quality, morning_feeling)
             VALUES
-            (%(name)s, %(record_date)s, %(nap_start)s, %(nap_end)s, %(caffeine)s, %(alcohol)s,
-             %(med_name)s, %(med_dose)s, %(med_time)s, %(daytime_mood)s, %(sleep_interference)s,
-             %(bed_time)s, %(try_sleep_time)s, %(sleep_latency)s, %(night_awake_count)s,
-             %(night_awake_total)s, %(final_wake_time)s, %(get_up_time)s,
-             %(total_sleep_hours)s, %(sleep_quality)s, %(morning_feeling)s)
+            (%(name)s, %(record_date)s, %(entry_date)s, %(nap_start)s, %(nap_end)s, 
+             %(caffeine)s, %(alcohol)s, %(med_name)s, %(med_dose)s, %(med_time)s, 
+             %(daytime_mood)s, %(sleep_interference)s, %(bed_time)s, %(try_sleep_time)s, 
+             %(sleep_latency)s, %(night_awake_count)s, %(night_awake_total)s, 
+             %(final_wake_time)s, %(get_up_time)s, %(total_sleep_hours)s, 
+             %(sleep_quality)s, %(morning_feeling)s)
             """
             
             with conn.cursor() as cursor:
                 cursor.execute(sql, record)
                 conn.commit()
             
-            st.success(f"{record_date} 睡眠日记已成功保存！")
+            # 显示成功消息
+            success_msg = st.success(f"{record_date} 睡眠日记已成功保存！")
+            time.sleep(2)  # 显示2秒
+            success_msg.empty()  # 清除消息
+            
+            # 重置表单按钮
+            if st.button("填写新日记"):
+                st.experimental_rerun()
+                
         except Exception as e:
             st.error(f"保存失败: {str(e)}")
         finally:
