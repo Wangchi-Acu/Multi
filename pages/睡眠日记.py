@@ -42,6 +42,13 @@ div[data-baseweb="slider"] > div > div > div {
     border: none;
     font-weight: bold;
 }
+
+/* 只读日期样式 */
+.readonly-date .stDateInput > div > input {
+    background-color: #f0f0f0;
+    color: #555555;
+    cursor: not-allowed;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -82,8 +89,12 @@ with st.form("sleep_diary"):
     col_date1, col_date2 = st.columns(2)
     # 记录日期（日记内容对应的日期，默认为昨天）
     record_date = col_date1.date_input("记录日期（睡眠日期）", yesterday)
-    # 填写日期（提交日记的日期，默认为今天）
-    entry_date = col_date2.date_input("填写日期", today)
+    
+    # 填写日期（提交日记的日期，默认为今天，不可更改）
+    with col_date2:
+        st.markdown('<div class="readonly-date">', unsafe_allow_html=True)
+        entry_date = st.date_input("填写日期", today, disabled=True)
+        st.markdown('</div>', unsafe_allow_html=True)
     
     st.subheader("日间活动记录")
     col1, col2 = st.columns(2)
@@ -99,12 +110,22 @@ with st.form("sleep_diary"):
     med_dose = med_col2.text_input("剂量", placeholder="0mg")
     med_time = med_col3.select_slider("服用时间", options=evening_slots, value="22:00")
     
-    # 更新为优、良、中、差、很差
+    # 日间情绪状态
     daytime_mood = st.radio("昨日日间情绪状态", ["优", "良", "中", "差", "很差"], horizontal=True, index=2)
     
-    sleep_interference = ";".join(
-        st.multiselect("昨晚干扰睡眠因素（可多选）", ["噪音", "疼痛", "压力", "温度", "光线", "其他"])
-    )
+    # 干扰睡眠因素 - 添加"无"选项并设为默认
+    interference_options = ["噪音", "疼痛", "压力", "温度", "光线", "其他", "无"]
+    selected_interference = st.multiselect("昨晚干扰睡眠因素（可多选）", 
+                                          interference_options, 
+                                          default=["无"])
+    
+    # 如果用户选择了"无"和其他选项，则只保留"无"
+    if "无" in selected_interference:
+        sleep_interference = "无"
+    elif not selected_interference:
+        sleep_interference = "无"
+    else:
+        sleep_interference = ";".join(selected_interference)
     
     st.subheader("夜间睡眠记录")
     bed_time = st.select_slider("昨晚上床时间", options=evening_slots, value="23:00")
@@ -123,9 +144,13 @@ with st.form("sleep_diary"):
     
     total_sleep_hours = st.number_input("总睡眠时间（小时）", 0.0, 24.0, 7.0, 0.1)
     
-    # 更新为优、良、中、差、很差
+    # 睡眠质量评分
     sleep_quality = st.radio("睡眠质量评分", ["优", "良", "中", "差", "很差"], horizontal=True, index=2)
-    morning_feeling = st.radio("晨起后感觉", ["优", "良", "中", "差", "很差"], horizontal=True, index=1)
+    
+    # 晨起后感觉 - 改为好、中、差
+    morning_feeling_options = ["好", "中", "差"]
+    morning_feeling = st.radio("晨起后感觉", morning_feeling_options, horizontal=True, 
+                              index=1)  # 默认选中"中"
     
     # 提交按钮
     submitted = st.form_submit_button("保存日记")
@@ -193,11 +218,9 @@ if submitted:
             # 显示成功消息
             success_msg = st.success(f"{record_date} 睡眠日记已成功保存！")
             time.sleep(2)  # 显示2秒
-            success_msg.empty()  # 清除消息
             
             # 重置表单按钮
-            if st.button("填写新日记"):
-                st.experimental_rerun()
+            st.experimental_rerun()
                 
         except Exception as e:
             st.error(f"保存失败: {str(e)}")
