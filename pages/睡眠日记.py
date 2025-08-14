@@ -67,7 +67,7 @@ def generate_time_slots(start_hour, end_hour):
     slots = []
     for h in range(start_hour, end_hour + 1):
         hour = h % 24
-        for m in [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]:,
+        for m in [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]:
             slots.append(f"{hour:02d}:{m:02d}")
     return slots
 
