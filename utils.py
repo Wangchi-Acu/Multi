@@ -96,3 +96,7 @@ if __name__ == "__main__":
             """,
             unsafe_allow_html=True
         )
+       # 进入睡眠日记按钮
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("🛏️ 进入睡眠日记填写", type="primary"):
+        st.switch_page("pages/睡眠日记.py")
