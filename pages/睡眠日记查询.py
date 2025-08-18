@@ -31,8 +31,9 @@ with tab1:
     patient = st.text_input("患者姓名").strip()
     record_date = st.date_input("记录日期", date.today())
     if st.button("查询单次") and patient:
+        # 获取指定日期的最新记录
         df = run_query(
-            "SELECT * FROM sleep_diary WHERE name=%s AND record_date=%s ORDER BY created_at DESC",
+            "SELECT * FROM sleep_diary WHERE name=%s AND record_date=%s ORDER BY created_at DESC LIMIT 1",
             params=(patient, record_date.isoformat())
         )
         st.dataframe(df.T if not df.empty else "暂无记录")
@@ -40,14 +41,30 @@ with tab1:
 with tab2:
     patient = st.text_input("患者姓名（汇总）").strip()
     if st.button("查询最近7次") and patient:
+        # 获取最近7个不同日期的最新记录
         df = run_query(
-            "SELECT * FROM sleep_diary WHERE name=%s ORDER BY record_date DESC LIMIT 7",
+            """
+            SELECT t1.* 
+            FROM sleep_diary t1
+            INNER JOIN (
+                SELECT record_date, MAX(created_at) AS max_created_at
+                FROM sleep_diary
+                WHERE name = %s
+                GROUP BY record_date
+                ORDER BY record_date DESC
+                LIMIT 7
+            ) t2 
+            ON t1.record_date = t2.record_date AND t1.created_at = t2.max_created_at
+            ORDER BY t1.record_date DESC
+            """,
             params=(patient,)
         )
+        
         if df.empty:
             st.warning("暂无记录")
             st.stop()
 
+        # 按日期排序（从旧到新）
         df = df.sort_values("record_date")
         df["date_fmt"] = pd.to_datetime(df["record_date"]).dt.strftime("%m-%d")
 
