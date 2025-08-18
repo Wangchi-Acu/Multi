@@ -46,12 +46,50 @@ with tab2:
         )
         if df.empty:
             st.warning("暂无记录")
-        else:
-            df = df.sort_values("record_date")
-            df["date_fmt"] = pd.to_datetime(df["record_date"]).dt.strftime("%m-%d")
-            cols = ["total_sleep_hours", "sleep_quality", "sleep_latency", "night_awake_count"]
-            df_plot = df[["date_fmt"] + cols].melt(id_vars="date_fmt", var_name="指标", value_name="值")
-            fig = px.line(df_plot, x="date_fmt", y="值", color="指标", markers=True,
-                          title=f"{patient} 最近7次睡眠关键指标")
-            st.plotly_chart(fig, use_container_width=True)
-            st.dataframe(df.reset_index(drop=True))
+            st.stop()
+
+        df = df.sort_values("record_date")
+        df["date_fmt"] = pd.to_datetime(df["record_date"]).dt.strftime("%m-%d")
+
+        # ----- 工具：把时间字符串 → 分钟数 -----
+        def time_to_min(t):
+            try:
+                h, m = map(int, t.split(":"))
+                return h * 60 + m
+            except:
+                return None
+
+        # 1. 关键时间折线图
+        time_cols = ["bed_time", "try_sleep_time", "final_wake_time", "get_up_time",
+                     "med_time", "nap_start", "nap_end"]
+        df_time = df[["date_fmt"] + time_cols].copy()
+        for col in time_cols:
+            df_time[col] = df_time[col].apply(time_to_min)
+
+        fig1 = px.line(df_time.melt(id_vars="date_fmt", var_name="事件", value_name="分钟"),
+                       x="date_fmt", y="分钟", color="事件",
+                       title=f"{patient} —— 关键时间折线图")
+        st.plotly_chart(fig1, use_container_width=True)
+
+        # 2. 入睡所需时长
+        fig2 = px.line(df, x="date_fmt", y="sleep_latency",
+                       markers=True, title=f"{patient} —— 入睡所需时长（分钟）")
+        st.plotly_chart(fig2, use_container_width=True)
+
+        # 3. 夜间觉醒次数
+        fig3 = px.line(df, x="date_fmt", y="night_awake_count",
+                       markers=True, title=f"{patient} —— 夜间觉醒次数")
+        st.plotly_chart(fig3, use_container_width=True)
+
+        # 4. 夜间觉醒总时长
+        fig4 = px.line(df, x="date_fmt", y="night_awake_total",
+                       markers=True, title=f"{patient} —— 夜间觉醒总时长（分钟）")
+        st.plotly_chart(fig4, use_container_width=True)
+
+        # 5. 总睡眠时长
+        fig5 = px.line(df, x="date_fmt", y="total_sleep_hours",
+                       markers=True, title=f"{patient} —— 总睡眠时长（小时）")
+        st.plotly_chart(fig5, use_container_width=True)
+
+        # 原始数据表
+        st.dataframe(df.reset_index(drop=True))
