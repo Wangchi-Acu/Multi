@@ -59,6 +59,16 @@ with st.form("sleep_diary"):
     nap_start = col1.select_slider("昨日白天小睡开始时间", options=daytime_slots, value="14:00")
     nap_end = col2.select_slider("昨日白天小睡结束时间", options=daytime_slots, value="14:05")
     
+    # 添加日间卧床时间（单位：分钟）
+    daytime_bed_minutes = st.number_input(
+        "日间卧床时间（分钟）",
+        min_value=0,
+        max_value=600,
+        value=0,
+        step=5,
+        help="除小睡外，日间在床上休息但未入睡的时间"
+    )
+    
     caffeine = st.text_input("昨日咖啡因摄入（例：咖啡，8:00/2杯）", value="无")
     alcohol = st.text_input("昨日酒精摄入（例：啤酒，19:00/1瓶）", value="无")
     
@@ -137,6 +147,7 @@ if submitted:
                 "entry_date": entry_date.isoformat(),    # 填写日期
                 "nap_start": nap_start,
                 "nap_end": nap_end,
+                "daytime_bed_minutes": daytime_bed_minutes,  # 新增的日间卧床时间
                 "caffeine": caffeine,
                 "alcohol": alcohol,
                 "med_name": med_name,
@@ -182,6 +193,7 @@ if submitted:
                     SET entry_date = %(entry_date)s,
                         nap_start = %(nap_start)s,
                         nap_end = %(nap_end)s,
+                        daytime_bed_minutes = %(daytime_bed_minutes)s,
                         caffeine = %(caffeine)s,
                         alcohol = %(alcohol)s,
                         med_name = %(med_name)s,
@@ -207,14 +219,14 @@ if submitted:
                     # 插入新记录
                     insert_sql = """
                     INSERT INTO sleep_diary
-                    (name, record_date, entry_date, nap_start, nap_end, caffeine, alcohol, 
+                    (name, record_date, entry_date, nap_start, nap_end, daytime_bed_minutes, caffeine, alcohol, 
                      med_name, med_dose, med_time, daytime_mood, sleep_interference, 
                      bed_time, try_sleep_time, sleep_latency, night_awake_count, 
                      night_awake_total, final_wake_time, get_up_time, total_sleep_hours,
                      sleep_quality, morning_feeling)
                     VALUES
                     (%(name)s, %(record_date)s, %(entry_date)s, %(nap_start)s, %(nap_end)s, 
-                     %(caffeine)s, %(alcohol)s, %(med_name)s, %(med_dose)s, %(med_time)s, 
+                     %(daytime_bed_minutes)s, %(caffeine)s, %(alcohol)s, %(med_name)s, %(med_dose)s, %(med_time)s, 
                      %(daytime_mood)s, %(sleep_interference)s, %(bed_time)s, %(try_sleep_time)s, 
                      %(sleep_latency)s, %(night_awake_count)s, %(night_awake_total)s, 
                      %(final_wake_time)s, %(get_up_time)s, %(total_sleep_hours)s, 
