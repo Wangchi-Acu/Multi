@@ -178,10 +178,10 @@ with st.form("sleep_diary"):
     
     total_sleep_hours = sleep_hours + (sleep_minutes / 60.0)
     
-    # 睡眠质量评分
+    # 睡眠质量自我评价
     sleep_quality = st.radio("睡眠质量自我评价", ["优", "良", "中", "差", "很差"], horizontal=True, index=2)
     
-    # 晨起后感觉 - 改为好、中、差
+    # 晨起后精神状态 - 改为好、中、差
     morning_feeling_options = ["好", "中", "差"]
     morning_feeling = st.radio("晨起后精神状态", morning_feeling_options, horizontal=True, 
                               index=1)  # 默认选中"中"
