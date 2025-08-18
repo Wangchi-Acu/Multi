@@ -159,8 +159,7 @@ with st.form("sleep_diary"):
     night_awake_count = col4.number_input("夜间觉醒次数", 0, 15, 0)
     
     night_awake_total = st.number_input("夜间觉醒总时长（分钟）", 0, 300, 0)
-    
-    st.subheader("晨间记录")
+
     col5, col6 = st.columns(2)
     final_wake_time = col5.select_slider("早晨最终醒来时间", options=morning_slots, value="06:30")
     get_up_time = col6.select_slider("起床时间", options=morning_slots, value="06:35")
