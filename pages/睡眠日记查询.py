@@ -43,6 +43,8 @@ def time_to_min(t):
 def min_to_time(minutes):
     total_hours = minutes // 60
     total_minutes = minutes % 60
+    if total_hours >= 24:
+        total_hours -= 24
     return f"{total_hours:02d}:{total_minutes:02d}"
 
 with tab1:
@@ -53,7 +55,6 @@ with tab1:
         df = run_query(
             "SELECT * FROM sleep_diary WHERE name=%s AND record_date=%s ORDER BY created_at DESC LIMIT 1",
             params=(patient, record_date.isoformat())
-        )
         st.dataframe(df.T if not df.empty else "暂无记录")
 
 with tab2:
@@ -103,10 +104,11 @@ with tab2:
                     values.append("")
                 else:
                     # 转换为原始时间格式显示
-                    h, m_val = divmod(m, 60)
-                    if h >= 24:  # 处理跨天时间
-                        h -= 24
-                    values.append(f"{int(h):02d}:{int(m_val):02d}")
+                    total_hours = m // 60
+                    total_minutes = m % 60
+                    if total_hours >= 24:
+                        total_hours -= 24
+                    values.append(f"{int(total_hours):02d}:{int(total_minutes):02d}")
             
             night_data.append(go.Scatter(
                 x=df["date_fmt"],
@@ -118,7 +120,7 @@ with tab2:
                 marker=dict(size=10),
                 line=dict(width=3),
                 textfont=dict(size=12, color='black')
-            ))
+            )
         
         # 创建图表
         fig_night = go.Figure(data=night_data)
@@ -134,8 +136,8 @@ with tab2:
         )
         
         # 设置Y轴格式（分钟数转时间）
-        min_y = min([min(df[col].apply(time_to_min).min() for col in night_time_cols])
-        max_y = max([max(df[col].apply(time_to_min).max() for col in night_time_cols])
+        min_y = min([min(df[col].apply(time_to_min)) for col in night_time_cols])
+        max_y = max([max(df[col].apply(time_to_min)) for col in night_time_cols])
         
         # 创建刻度值（每30分钟一个刻度）
         y_ticks = list(range(int(min_y) - 30, int(max_y) + 30, 30))
@@ -173,7 +175,7 @@ with tab2:
                 marker=dict(size=10),
                 line=dict(width=3),
                 textfont=dict(size=12, color='black')
-            ))
+            )
         
         # 创建图表
         fig_nap = go.Figure(data=nap_data)
