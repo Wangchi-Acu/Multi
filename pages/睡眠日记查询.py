@@ -104,15 +104,27 @@ with tab2:
             ))
 
         fig_night = go.Figure(data=night_data)
+
+        # 设置 Y 轴为时间格式（分钟数），并自定义 tick labels
+        tickvals = list(range(0, 1441, 120))  # 每两小时一个 tick
+        ticktext = [min_to_time(m) for m in tickvals]
+
         fig_night.update_layout(
             title=f"{patient} —— 夜间关键时间点",
             xaxis_title="日期",
-            yaxis_title="时间",
+            yaxis=dict(
+                title="时间",
+                tickvals=tickvals,
+                ticktext=ticktext,
+                range=[0, 1440],  # 00:00 到 24:00
+                autorange=False,
+                type='linear',
+                tickfont=dict(size=12),
+            ),
             legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5),
             font=dict(family="Microsoft YaHei", size=14),
             height=500
         )
-        st.plotly_chart(fig_night, use_container_width=True)
 
         # ---------- 2. 日间小睡时间折线图 ----------
         nap_cols = ["nap_start", "nap_end"]
