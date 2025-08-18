@@ -92,14 +92,9 @@ if __name__ == "__main__":
             """,
             unsafe_allow_html=True
         )
-    # 睡眠日记填写（第一行）
-    st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("🛏️ 睡眠日记填写", type="primary", use_container_width=True):
-        st.switch_page("pages/睡眠日记.py")
-
-    # 下面四行，每行两个按钮
-    cols = st.columns(2)
+    # 九行按钮，每行一个，宽度缩小到 40%
     buttons = [
+        ("🛏️ 睡眠日记填写", "pages/睡眠日记.py"),
         ("🛋️ 量表① PSQI",  "pages/PSQI.py"),
         ("😴 量表② ISI",   "pages/ISI.py"),
         ("🌀 量表③ HAS",   "pages/HAS.py"),
@@ -110,8 +105,8 @@ if __name__ == "__main__":
         ("📈 量表汇总查询", "pages/患者查询.py")
     ]
 
-    for i, (txt, page) in enumerate(buttons):
-        with cols[i % 2]:
+    for txt, page in buttons:
+        col1, col2, col3 = st.columns([1, 2, 1])  # 左右留空，中间 40%
+        with col2:
             if st.button(txt, type="primary", use_container_width=True):
                 st.switch_page(page)
-
