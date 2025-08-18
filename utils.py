@@ -87,16 +87,31 @@ if __name__ == "__main__":
             <div class="main-wrapper">
                 <div class="big-title">针灸科失眠专病门诊</div>
                 <div class="sub-title">量表测评系统</div>
-                <div class="guide">
-                    <span class="arrow">👆👆👆</span><br/>
-                    点击左上角 <b>&gt;&gt;</b> 展开侧边栏<br/>
-                    按照顺序开始测评吧~
                 </div>
             </div>
             """,
             unsafe_allow_html=True
         )
        # 进入睡眠日记按钮
-    st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("🛏️ 进入睡眠日记填写", type="primary"):
-        st.switch_page("pages/睡眠日记.py")
+# 睡眠日记填写（第一行）
+st.markdown("<br>", unsafe_allow_html=True)
+if st.button("🛏️ 睡眠日记填写", type="primary", use_container_width=True):
+    st.switch_page("pages/睡眠日记.py")
+
+# 下面四行，每行两个按钮
+cols = st.columns(2)
+buttons = [
+    ("🛋️ 量表① PSQI",  "pages/PSQI.py"),
+    ("😴 量表② ISI",   "pages/ISI.py"),
+    ("🌀 量表③ HAS",   "pages/HAS.py"),
+    ("⚡ 量表④ FSS",   "pages/FSS.py"),
+    ("😰 量表⑤ SAS",   "pages/SAS.py"),
+    ("😞 量表⑥ SDS",   "pages/SDS.py"),
+    ("📊 睡眠日记查询", "pages/睡眠日记查询.py"),
+    ("📈 量表汇总查询", "pages/患者查询.py")
+]
+
+for i, (txt, page) in enumerate(buttons):
+    with cols[i % 2]:
+        if st.button(txt, type="primary", use_container_width=True):
+            st.switch_page(page)
