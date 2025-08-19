@@ -13,7 +13,8 @@ pwd = st.text_input("查询密码", type="password")
 if pwd.strip() != "10338":
     st.stop()
 
-tab1, tab2 = st.tabs(["🔍 单次查询", "📈 最近7次汇总"])
+# 添加按日期查询所有记录的标签页
+tab1, tab2, tab3 = st.tabs(["🔍 单次查询", "📈 最近7次汇总", "📅 按日期查询"])
 
 def run_query(sql, params=None):
     conn = pymysql.connect(
@@ -125,6 +126,7 @@ with tab2:
             font=dict(family="Microsoft YaHei", size=14),
             height=500
         )
+        st.plotly_chart(fig_night, use_container_width=True)
 
         # ---------- 2. 日间小睡时间折线图 ----------
         nap_cols = ["nap_start", "nap_end"]
@@ -180,3 +182,31 @@ with tab2:
 
         st.subheader("原始数据")
         st.dataframe(df.reset_index(drop=True))
+
+# 新增的按日期查询所有记录功能
+with tab3:
+    st.subheader("按日期查询所有记录")
+    query_date = st.date_input("选择查询日期", date.today())
+    
+    if st.button("查询该日期所有记录"):
+        # 查询指定日期的所有记录
+        df_all = run_query(
+            "SELECT * FROM sleep_diary WHERE record_date=%s ORDER BY name, created_at DESC",
+            params=(query_date.isoformat(),)
+        )
+        
+        if df_all.empty:
+            st.warning(f"{query_date} 没有找到任何记录")
+        else:
+            st.success(f"找到 {len(df_all)} 条记录（{query_date}）")
+            
+            # 按患者分组显示
+            patients = df_all["name"].unique()
+            for patient in patients:
+                st.subheader(f"患者: {patient}")
+                patient_df = df_all[df_all["name"] == patient]
+                st.dataframe(patient_df)
+            
+            # 显示完整数据表
+            st.subheader("完整数据表")
+            st.dataframe(df_all)
