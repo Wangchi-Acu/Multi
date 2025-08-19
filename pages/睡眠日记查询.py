@@ -86,94 +86,79 @@ with tab2:
         # 1. 准备数据：如果药物名称为"无"，则将服药时间设为None
         df["med_time_display"] = df.apply(lambda row: row["med_time"] if row["med_name"] != "无" and pd.notna(row["med_name"]) else None, axis=1)
 
-        # ---------- 第一组图：上床时间、试图入睡时间、服药时间（如果有） ----------
-        group1_cols = ["bed_time", "try_sleep_time", "med_time_display"]
-        group1_labels = ["上床时间", "试图入睡时间", "服药时间"]
-        
-        group1_data = []
-        for col, label in zip(group1_cols, group1_labels):
-            minutes = df[col].apply(time_to_min)
-            labels = df[col].tolist()
-            
-            # 只添加有数据的系列
-            if col == "med_time_display" and df[col].isnull().all():
-                continue  # 跳过没有服药时间的系列
-                
-            group1_data.append(go.Scatter(
-                x=df["date_fmt"],
-                y=minutes,
-                name=label,
-                mode='lines+markers+text',
-                text=labels,
-                textposition="top center",
-                marker=dict(size=10),
-                line=dict(width=3),
-                textfont=dict(size=12, color='black')
-            ))
+        # ---------- 第一组：夜间关键时间 ----------
+       group1_cols = ["bed_time", "try_sleep_time", "med_time_display"]
+       group1_labels = ["上床时间", "试图入睡时间", "服药时间"]
 
-        fig_group1 = go.Figure(data=group1_data)
+       group1_data = []
+       for col, label in zip(group1_cols, group1_labels):
+           minutes = df[col].apply(time_to_min)
+           labels = df[col].tolist()
+           if col == "med_time_display" and df[col].isnull().all():
+               continue
+           group1_data.append(go.Scatter(
+               x=df["date_fmt"],
+               y=minutes,
+               name=label,
+               mode='lines+markers+text',
+               text=labels,
+               textposition="top center",
+               marker=dict(size=10),
+               line=dict(width=3),
+               textfont=dict(size=12, color='black')
+           ))
 
-        # 设置 Y 轴为时间格式（分钟数），并自定义 tick labels
-        tickvals = list(range(0, 1441, 120))  # 每两小时一个 tick
-        ticktext = [min_to_time(m) for m in tickvals]
+       fig_group1 = go.Figure(data=group1_data)
+       fig_group1.update_layout(
+           title=f"{patient} —— 夜间关键时间点",
+           xaxis_title="日期",
+           yaxis=dict(
+               title="时间",
+               tickformat="%H:%M",
+               autorange=True,      # ← 自适应
+               tickfont=dict(size=12)
+           ),
+           legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5),
+           font=dict(family="Microsoft YaHei", size=14),
+           height=500
+       )
+       st.plotly_chart(fig_group1, use_container_width=True)
 
-        fig_group1.update_layout(
-            title=f"{patient} —— 上床时间、试图入睡时间、服药时间",
-            xaxis_title="日期",
-            yaxis=dict(
-                title="时间",
-                tickvals=tickvals,
-                ticktext=ticktext,
-                range=[0, 1440],  # 00:00 到 24:00
-                autorange=False,
-                type='linear',
-                tickfont=dict(size=12),
-            ),
-            legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5),
-            font=dict(family="Microsoft YaHei", size=14),
-            height=500
-        )
-        st.plotly_chart(fig_group1, use_container_width=True)
+       # ---------- 第二组：日间小睡时间 ----------
+       group2_cols = ["nap_start", "nap_end"]
+       group2_labels = ["小睡开始时间", "小睡结束时间"]
 
-        # ---------- 第二组图：最终醒来时间、起床时间 ----------
-        group2_cols = ["final_wake_time", "get_up_time"]
-        group2_labels = ["最终醒来时间", "起床时间"]
+       group2_data = []
+       for col, label in zip(group2_cols, group2_labels):
+           minutes = df[col].apply(lambda t: int(t.split(":")[0]) * 60 + int(t.split(":")[1]))
+           labels = df[col].tolist()
+           group2_data.append(go.Scatter(
+               x=df["date_fmt"],
+               y=minutes,
+               name=label,
+               mode='lines+markers+text',
+               text=labels,
+               textposition="top center",
+               marker=dict(size=10),
+               line=dict(width=3),
+               textfont=dict(size=12, color='black')
+           ))
 
-        group2_data = []
-        for col, label in zip(group2_cols, group2_labels):
-            minutes = df[col].apply(time_to_min)
-            labels = df[col].tolist()
-
-            group2_data.append(go.Scatter(
-                x=df["date_fmt"],
-                y=minutes,
-                name=label,
-                mode='lines+markers+text',
-                text=labels,
-                textposition="top center",
-                marker=dict(size=10),
-                line=dict(width=3),
-                textfont=dict(size=12, color='black')
-            ))
-
-        fig_group2 = go.Figure(data=group2_data)
-        fig_group2.update_layout(
-            title=f"{patient} —— 最终醒来时间、起床时间",
-            xaxis_title="日期",
-            yaxis=dict(
-                title="时间",
-                tickvals=tickvals,
-                ticktext=ticktext,
-                range=[0, 1440],
-                autorange=False,
-                type='linear',
-                tickfont=dict(size=12),
-            ),
-            legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5),
-            font=dict(family="Microsoft YaHei", size=14),
-            height=500
-        )
-        st.plotly_chart(fig_group2, use_container_width=True)
+       fig_group2 = go.Figure(data=group2_data)
+       fig_group2.update_layout(
+           title=f"{patient} —— 日间小睡时间",
+           xaxis_title="日期",
+           yaxis=dict(
+               title="时间",
+               tickformat="%H:%M",
+               autorange=True,      # ← 自适应
+               tickfont=dict(size=12)
+           ),
+           legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5),
+           font=dict(family="Microsoft YaHei", size=14),
+           height=500
+       )
+       st.plotly_chart(fig_group2, use_container_width=True)
 
         # ---------- 3. 日间小睡时间折线图 ----------
         nap_cols = ["nap_start", "nap_end"]
