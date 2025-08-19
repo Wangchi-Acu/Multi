@@ -191,7 +191,7 @@ with tab3:
     if st.button("查询该日期所有记录"):
         # 查询指定日期的所有记录
         df_all = run_query(
-            "SELECT * FROM sleep_diary WHERE record_date=%s ORDER BY name, created_at DESC",
+            "SELECT * FROM sleep_diary WHERE entry_date=%s ORDER BY name, created_at DESC",
             params=(query_date.isoformat(),)
         )
         
