@@ -80,42 +80,46 @@ with tab2:
 
         df["date_fmt"] = pd.to_datetime(df["record_date"]).dt.strftime("%m-%d")
 
-        # 1. 夜间关键时间
-        night_cols = ["bed_time", "try_sleep_time", "final_wake_time", "get_up_time"]
-        night_labels = ["上床时间", "试图入睡时间", "最终醒来时间", "起床时间"]
+        # 工具函数
+        def time_to_min(t):
+            h, m = map(int, t.split(":"))
+            return (h if h >= 12 else h + 24) * 60 + m
+
+        # 1. 上床时间 + 试图入睡时间
+        cols1 = ["bed_time", "try_sleep_time"]
+        labels1 = ["上床时间", "试图入睡时间"]
         data1 = []
-        for col, label in zip(night_cols, night_labels):
+        for col, label in zip(cols1, labels1):
             mins = df[col].apply(time_to_min)
-            data1.append(go.Scatter(x=df["date_fmt"], y=mins, name=label,
-                                    mode="lines+markers+text", text=df[col],
-                                    textposition="top center"))
+            data1.append(go.Scatter(
+                x=df["date_fmt"], y=mins, name=label,
+                mode="lines+markers+text", text=df[col],
+                textposition="top center"
+            ))
         fig1 = go.Figure(data1)
-        fig1.update_layout(title="夜间关键时间点", yaxis=dict(tickformat="%H:%M", autorange=True))
+        fig1.update_layout(
+            title=f"{patient} —— 上床时间与试图入睡时间",
+            xaxis_title="日期", yaxis=dict(tickformat="%H:%M", autorange=True)
+        )
         st.plotly_chart(fig1, use_container_width=True)
 
-        # 2. 日间小睡时间
-        nap_cols = ["nap_start", "nap_end"]
-        nap_labels = ["小睡开始时间", "小睡结束时间"]
+        # 2. 最终醒来时间 + 起床时间
+        cols2 = ["final_wake_time", "get_up_time"]
+        labels2 = ["最终醒来时间", "起床时间"]
         data2 = []
-        for col, label in zip(nap_cols, nap_labels):
-            mins = df[col].apply(lambda t: int(t.split(":")[0]) * 60 + int(t.split(":")[1]))
-            data2.append(go.Scatter(x=df["date_fmt"], y=mins, name=label,
-                                    mode="lines+markers+text", text=df[col],
-                                    textposition="top center"))
+        for col, label in zip(cols2, labels2):
+            mins = df[col].apply(time_to_min)
+            data2.append(go.Scatter(
+                x=df["date_fmt"], y=mins, name=label,
+                mode="lines+markers+text", text=df[col],
+                textposition="top center"
+            ))
         fig2 = go.Figure(data2)
-        fig2.update_layout(title="日间小睡时间", yaxis=dict(tickformat="%H:%M", autorange=True))
+        fig2.update_layout(
+            title=f"{patient} —— 最终醒来时间与起床时间",
+            xaxis_title="日期", yaxis=dict(tickformat="%H:%M", autorange=True)
+        )
         st.plotly_chart(fig2, use_container_width=True)
-
-        # 3-7 其余指标
-        metrics = [("sleep_latency", "入睡所需时长（分钟）"),
-                   ("night_awake_count", "夜间觉醒次数"),
-                   ("night_awake_total", "夜间觉醒总时长（分钟）"),
-                   ("total_sleep_hours", "总睡眠时长（小时）")]
-        for col, title in metrics:
-            fig = px.line(df, x="date_fmt", y=col, markers=True, title=title)
-            st.plotly_chart(fig, use_container_width=True)
-
-        st.dataframe(df.reset_index(drop=True))
 
 # ---------- 按日期查询 ----------
 with tab3:
