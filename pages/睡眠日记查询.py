@@ -13,7 +13,6 @@ pwd = st.text_input("查询密码", type="password")
 if pwd.strip() != "10338":
     st.stop()
 
-# 添加按日期查询所有记录的标签页
 tab1, tab2, tab3 = st.tabs(["🔍 单次查询", "📈 最近7次汇总", "📅 按日期查询"])
 
 def run_query(sql, params=None):
@@ -29,23 +28,21 @@ def run_query(sql, params=None):
     conn.close()
     return df
 
-# 时间转换函数（支持跨天）
+# 时间 → 分钟（跨天）
 def time_to_min(t):
     try:
         h, m = map(int, t.split(":"))
-        # 处理跨天时间（如02:00表示为26:00）
-        if h < 12 and h >= 0:
-            h += 24
-        return h * 60 + m
+        return (h if h >= 12 else h + 24) * 60 + m
     except:
         return None
 
-# 分钟数转时间字符串（用于图表标签）
-def min_to_time(minutes):
-    total_hours = minutes // 60
-    total_minutes = minutes % 60
-    return f"{total_hours:02d}:{total_minutes:02d}"
+# 分钟 → 时间字符串
+def min_to_time(m):
+    h, mi = divmod(int(m), 60)
+    h = h - 24 if h >= 24 else h
+    return f"{h:02d}:{mi:02d}"
 
+# ---------- 单次查询 ----------
 with tab1:
     patient = st.text_input("患者姓名").strip()
     record_date = st.date_input("记录日期", date.today())
@@ -56,6 +53,7 @@ with tab1:
         )
         st.dataframe(df.T if not df.empty else "暂无记录")
 
+# ---------- 最近7次汇总 ----------
 with tab2:
     patient = st.text_input("患者姓名（汇总）").strip()
     if st.button("查询最近7次") and patient:
@@ -76,169 +74,59 @@ with tab2:
             """,
             params=(patient,)
         )
-
         if df.empty:
             st.warning("暂无记录")
             st.stop()
 
         df["date_fmt"] = pd.to_datetime(df["record_date"]).dt.strftime("%m-%d")
 
-        # 1. 准备数据：如果药物名称为"无"，则将服药时间设为None
-        df["med_time_display"] = df.apply(lambda row: row["med_time"] if row["med_name"] != "无" and pd.notna(row["med_name"]) else None, axis=1)
+        # 1. 夜间关键时间
+        night_cols = ["bed_time", "try_sleep_time", "final_wake_time", "get_up_time"]
+        night_labels = ["上床时间", "试图入睡时间", "最终醒来时间", "起床时间"]
+        data1 = []
+        for col, label in zip(night_cols, night_labels):
+            mins = df[col].apply(time_to_min)
+            data1.append(go.Scatter(x=df["date_fmt"], y=mins, name=label,
+                                    mode="lines+markers+text", text=df[col],
+                                    textposition="top center"))
+        fig1 = go.Figure(data1)
+        fig1.update_layout(title="夜间关键时间点", yaxis=dict(tickformat="%H:%M", autorange=True))
+        st.plotly_chart(fig1, use_container_width=True)
 
-        # ---------- 第一组：夜间关键时间 ----------
-       group1_cols = ["bed_time", "try_sleep_time", "med_time_display"]
-       group1_labels = ["上床时间", "试图入睡时间", "服药时间"]
-
-       group1_data = []
-       for col, label in zip(group1_cols, group1_labels):
-           minutes = df[col].apply(time_to_min)
-           labels = df[col].tolist()
-           if col == "med_time_display" and df[col].isnull().all():
-               continue
-           group1_data.append(go.Scatter(
-               x=df["date_fmt"],
-               y=minutes,
-               name=label,
-               mode='lines+markers+text',
-               text=labels,
-               textposition="top center",
-               marker=dict(size=10),
-               line=dict(width=3),
-               textfont=dict(size=12, color='black')
-           ))
-
-       fig_group1 = go.Figure(data=group1_data)
-       fig_group1.update_layout(
-           title=f"{patient} —— 夜间关键时间点",
-           xaxis_title="日期",
-           yaxis=dict(
-               title="时间",
-               tickformat="%H:%M",
-               autorange=True,      # ← 自适应
-               tickfont=dict(size=12)
-           ),
-           legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5),
-           font=dict(family="Microsoft YaHei", size=14),
-           height=500
-       )
-       st.plotly_chart(fig_group1, use_container_width=True)
-
-       # ---------- 第二组：日间小睡时间 ----------
-       group2_cols = ["nap_start", "nap_end"]
-       group2_labels = ["小睡开始时间", "小睡结束时间"]
-
-       group2_data = []
-       for col, label in zip(group2_cols, group2_labels):
-           minutes = df[col].apply(lambda t: int(t.split(":")[0]) * 60 + int(t.split(":")[1]))
-           labels = df[col].tolist()
-           group2_data.append(go.Scatter(
-               x=df["date_fmt"],
-               y=minutes,
-               name=label,
-               mode='lines+markers+text',
-               text=labels,
-               textposition="top center",
-               marker=dict(size=10),
-               line=dict(width=3),
-               textfont=dict(size=12, color='black')
-           ))
-
-       fig_group2 = go.Figure(data=group2_data)
-       fig_group2.update_layout(
-           title=f"{patient} —— 日间小睡时间",
-           xaxis_title="日期",
-           yaxis=dict(
-               title="时间",
-               tickformat="%H:%M",
-               autorange=True,      # ← 自适应
-               tickfont=dict(size=12)
-           ),
-           legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5),
-           font=dict(family="Microsoft YaHei", size=14),
-           height=500
-       )
-       st.plotly_chart(fig_group2, use_container_width=True)
-
-        # ---------- 3. 日间小睡时间折线图 ----------
+        # 2. 日间小睡时间
         nap_cols = ["nap_start", "nap_end"]
         nap_labels = ["小睡开始时间", "小睡结束时间"]
-
-        nap_data = []
+        data2 = []
         for col, label in zip(nap_cols, nap_labels):
-            minutes = df[col].apply(lambda t: int(t.split(":")[0]) * 60 + int(t.split(":")[1]))
-            labels = df[col].tolist()
-
-            nap_data.append(go.Scatter(
-                x=df["date_fmt"],
-                y=minutes,
-                name=label,
-                mode='lines+markers+text',
-                text=labels,
-                textposition="top center",
-                marker=dict(size=10),
-                line=dict(width=3),
-                textfont=dict(size=12, color='black')
-            ))
-
-        fig_nap = go.Figure(data=nap_data)
-        fig_nap.update_layout(
-            title=f"{patient} —— 日间小睡时间",
-            xaxis_title="日期",
-            yaxis_title="时间",
-            legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5),
-            font=dict(family="Microsoft YaHei", size=14),
-            height=500
-        )
-        st.plotly_chart(fig_nap, use_container_width=True)
-
-        # 4. 入睡所需时长
-        fig2 = px.line(df, x="date_fmt", y="sleep_latency",
-                       markers=True, title=f"{patient} —— 入睡所需时长（分钟）")
+            mins = df[col].apply(lambda t: int(t.split(":")[0]) * 60 + int(t.split(":")[1]))
+            data2.append(go.Scatter(x=df["date_fmt"], y=mins, name=label,
+                                    mode="lines+markers+text", text=df[col],
+                                    textposition="top center"))
+        fig2 = go.Figure(data2)
+        fig2.update_layout(title="日间小睡时间", yaxis=dict(tickformat="%H:%M", autorange=True))
         st.plotly_chart(fig2, use_container_width=True)
 
-        # 5. 夜间觉醒次数
-        fig3 = px.line(df, x="date_fmt", y="night_awake_count",
-                       markers=True, title=f"{patient} —— 夜间觉醒次数")
-        st.plotly_chart(fig3, use_container_width=True)
+        # 3-7 其余指标
+        metrics = [("sleep_latency", "入睡所需时长（分钟）"),
+                   ("night_awake_count", "夜间觉醒次数"),
+                   ("night_awake_total", "夜间觉醒总时长（分钟）"),
+                   ("total_sleep_hours", "总睡眠时长（小时）")]
+        for col, title in metrics:
+            fig = px.line(df, x="date_fmt", y=col, markers=True, title=title)
+            st.plotly_chart(fig, use_container_width=True)
 
-        # 6. 夜间觉醒总时长
-        fig4 = px.line(df, x="date_fmt", y="night_awake_total",
-                       markers=True, title=f"{patient} —— 夜间觉醒总时长（分钟）")
-        st.plotly_chart(fig4, use_container_width=True)
-
-        # 7. 总睡眠时长
-        fig5 = px.line(df, x="date_fmt", y="total_sleep_hours",
-                       markers=True, title=f"{patient} —— 总睡眠时长（小时）")
-        st.plotly_chart(fig5, use_container_width=True)
-
-        st.subheader("原始数据")
         st.dataframe(df.reset_index(drop=True))
 
-# 新增的按日期查询所有记录功能
+# ---------- 按日期查询 ----------
 with tab3:
-    st.subheader("按日期查询所有记录")
     query_date = st.date_input("选择查询日期", date.today())
-    
     if st.button("查询该日期所有记录"):
-        # 查询指定日期的所有记录
         df_all = run_query(
             "SELECT * FROM sleep_diary WHERE entry_date=%s ORDER BY name, created_at DESC",
-            params=(query_date.isoformat(),)
+            params=(query_date.isoformat())
         )
-        
         if df_all.empty:
-            st.warning(f"{query_date} 没有找到任何记录")
+            st.warning(f"{query_date} 没有发现记录")
         else:
-            st.success(f"找到 {len(df_all)} 条记录（{query_date}）")
-            
-            # 按患者分组显示
-            patients = df_all["name"].unique()
-            for patient in patients:
-                st.subheader(f"患者: {patient}")
-                patient_df = df_all[df_all["name"] == patient]
-                st.dataframe(patient_df)
-            
-            # 显示完整数据表
-            st.subheader("完整数据表")
+            st.success(f"共 {len(df_all)} 条记录")
             st.dataframe(df_all)
