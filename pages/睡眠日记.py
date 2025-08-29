@@ -135,10 +135,10 @@ def plot_recent_7_days(patient_name):
 
     st.dataframe(df.reset_index(drop=True))
 
-# AI分析函数
-def analyze_sleep_data_with_ai(patient_name, sleep_data_df):
+# AI分析函数 - 修改为提供所有数据但保护隐私
+def analyze_sleep_data_with_ai(patient_name):
     """
-    使用通义千问API分析睡眠数据并给出建议
+    使用通义千问API分析患者的所有睡眠数据并给出建议（保护隐私）
     """
     try:
         # 设置API密钥（建议从环境变量获取）
@@ -147,42 +147,65 @@ def analyze_sleep_data_with_ai(patient_name, sleep_data_df):
         if not dashscope.api_key:
             return "API密钥未配置，无法提供AI分析建议。"
         
+        # 获取患者的所有睡眠数据
+        all_data = run_query(
+            """
+            SELECT t1.* 
+            FROM sleep_diary t1
+            INNER JOIN (
+                SELECT record_date, MAX(created_at) AS max_created_at
+                FROM sleep_diary
+                WHERE name = %s
+                GROUP BY record_date
+            ) t2 
+            ON t1.record_date = t2.record_date AND t1.created_at = t2.max_created_at
+            ORDER BY t1.record_date ASC
+            """,
+            params=(patient_name,)
+        )
+        
+        if all_data.empty:
+            return "暂无数据可供分析。"
+        
+        # 保护隐私：只保留必要的数据，移除姓名和敏感日期信息
+        # 只保留record_date和其他睡眠相关数据
+        privacy_safe_data = all_data.copy()
+        
+        # 移除隐私信息
+        columns_to_drop = ['name', 'entry_date', 'created_at']  # 移除姓名和填写日期
+        columns_to_keep = [col for col in privacy_safe_data.columns if col not in columns_to_drop]
+        privacy_safe_data = privacy_safe_data[columns_to_keep]
+        
+        # 格式化record_date为更友好的显示格式
+        privacy_safe_data['record_date'] = pd.to_datetime(privacy_safe_data['record_date']).dt.strftime('%Y-%m-%d')
+        
         # 准备数据摘要
-        data_summary = f"患者 {patient_name} 最近7天的睡眠数据：\n"
+        data_summary = f"患者所有睡眠记录数据（已保护隐私）：\n"
+        data_summary += f"记录总数：{len(privacy_safe_data)}条\n\n"
         
-        # 提取关键指标进行分析
-        avg_sleep_latency = sleep_data_df['sleep_latency'].mean()
-        avg_night_awake_count = sleep_data_df['night_awake_count'].mean()
-        avg_total_sleep_hours = sleep_data_df['total_sleep_hours'].mean()
-        avg_night_awake_total = sleep_data_df['night_awake_total'].mean()
-        
-        # 睡眠质量分布
-        sleep_quality_counts = sleep_data_df['sleep_quality'].value_counts()
-        
-        # 情绪状态分布
-        mood_counts = sleep_data_df['daytime_mood'].value_counts()
-        
-        # 构建数据摘要
-        data_summary += f"- 平均入睡时间：{avg_sleep_latency:.1f}分钟\n"
-        data_summary += f"- 平均夜间觉醒次数：{avg_night_awake_count:.1f}次\n"
-        data_summary += f"- 平均总睡眠时长：{avg_total_sleep_hours:.1f}小时\n"
-        data_summary += f"- 平均夜间觉醒总时长：{avg_night_awake_total:.1f}分钟\n"
-        data_summary += f"- 睡眠质量分布：{sleep_quality_counts.to_dict()}\n"
-        data_summary += f"- 日间情绪状态分布：{mood_counts.to_dict()}\n"
+        # 添加所有记录的详细数据
+        data_summary += "详细记录：\n"
+        for index, row in privacy_safe_data.iterrows():
+            data_summary += f"日期: {row['record_date']}\n"
+            for col in privacy_safe_data.columns:
+                if col != 'record_date':
+                    data_summary += f"  {col}: {row[col]}\n"
+            data_summary += "\n"
         
         # 构建提示词
         prompt = f"""
-        你是一名专业的睡眠医学专家。请根据以下患者一个月内记录的睡眠数据，提供专业的分析和改善建议：
+        你是一名专业的睡眠医学专家。请根据以下患者的所有睡眠记录数据，提供专业的分析和改善建议，但是回答的文本要体现严谨性，你只是AI分析，结果仅供参考：
 
         {data_summary}
 
         请从以下几个方面进行分析和建议：
-        1. 睡眠质量总体评估（除了总体评估，还需要比较最近2天与之前的睡眠情况相比，有何变化）
+        1. 睡眠质量总体评估（除了总体评估，还需要比较最近2天与之前的睡眠情况相比，有何变化。）
         2. 主要问题识别（如入睡困难、夜间频繁觉醒等）
         3. 可能的影响因素分析
         4. 具体的改善建议（包括生活习惯、睡前准备、环境优化等）
 
         请用中文回答，语言要专业但易懂，建议要具体可行。
+        注意：数据中的日期信息已做隐私保护处理，仅保留记录日期用于分析时间趋势。
         """
 
         # 调用通义千问API
@@ -438,46 +461,25 @@ if submitted:
             # AI分析和建议
             st.subheader("🤖 AI睡眠分析与建议")
             
-            # 获取最近7天数据用于AI分析
+            # 获取所有数据用于AI分析（已保护隐私）
             ai_analysis_placeholder = st.empty()
             ai_analysis_placeholder.info("正在为您生成个性化的睡眠分析和建议...")
             
             try:
-                recent_data = run_query(
-                    """
-                    SELECT t1.* 
-                    FROM sleep_diary t1
-                    INNER JOIN (
-                        SELECT record_date, MAX(created_at) AS max_created_at
-                        FROM sleep_diary
-                        WHERE name = %s
-                        GROUP BY record_date
-                        ORDER BY record_date DESC
-                        LIMIT 7
-                    ) t2 
-                    ON t1.record_date = t2.record_date AND t1.created_at = t2.max_created_at
-                    ORDER BY t1.record_date ASC
-                    """,
-                    params=(name,)
-                )
-                
-                if not recent_data.empty:
-                    ai_analysis_result = analyze_sleep_data_with_ai(name, recent_data)
-                    ai_analysis_placeholder.empty()  # 清除加载提示
-                    st.markdown(f"""
-                        <div style="
-                            background-color: #f8f9fa;
-                            border-left: 4px solid #007bff;
-                            padding: 20px;
-                            border-radius: 5px;
-                            margin: 20px 0;
-                        ">
-                            <h4>📋 个性化睡眠分析报告</h4>
-                            <div style="line-height: 1.6;">{ai_analysis_result}</div>
-                        </div>
-                    """, unsafe_allow_html=True)
-                else:
-                    ai_analysis_placeholder.warning("暂无足够数据进行AI分析")
+                ai_analysis_result = analyze_sleep_data_with_ai(name)
+                ai_analysis_placeholder.empty()  # 清除加载提示
+                st.markdown(f"""
+                    <div style="
+                        background-color: #f8f9fa;
+                        border-left: 4px solid #007bff;
+                        padding: 20px;
+                        border-radius: 5px;
+                        margin: 20px 0;
+                    ">
+                        <h4>📋 个性化睡眠分析报告</h4>
+                        <div style="line-height: 1.6;">{ai_analysis_result}</div>
+                    </div>
+                """, unsafe_allow_html=True)
             except Exception as e:
                 ai_analysis_placeholder.error(f"AI分析失败：{str(e)}")
                 
