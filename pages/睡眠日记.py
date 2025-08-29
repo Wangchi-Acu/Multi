@@ -371,3 +371,123 @@ if submitted:
                 
         except Exception as e:
             st.error(f"操作失败: {str(e)}")
+
+# 在文件开头添加
+import dashscope
+from dashscope import Generation
+
+# 在数据库连接函数后面添加AI分析函数
+def analyze_sleep_data_with_ai(patient_name, sleep_data_df):
+    """
+    使用通义千问API分析睡眠数据并给出建议
+    """
+    try:
+        # 设置API密钥（建议从环境变量获取）
+        dashscope.api_key = os.getenv("DASHSCOPE_API_KEY")
+        
+        if not dashscope.api_key:
+            return "API密钥未配置，无法提供AI分析建议。"
+        
+        # 准备数据摘要
+        data_summary = f"患者 {patient_name} 最近7天的睡眠数据：\n"
+        
+        # 提取关键指标进行分析
+        avg_sleep_latency = sleep_data_df['sleep_latency'].mean()
+        avg_night_awake_count = sleep_data_df['night_awake_count'].mean()
+        avg_total_sleep_hours = sleep_data_df['total_sleep_hours'].mean()
+        avg_night_awake_total = sleep_data_df['night_awake_total'].mean()
+        
+        # 睡眠质量分布
+        sleep_quality_counts = sleep_data_df['sleep_quality'].value_counts()
+        
+        # 情绪状态分布
+        mood_counts = sleep_data_df['daytime_mood'].value_counts()
+        
+        # 构建数据摘要
+        data_summary += f"- 平均入睡时间：{avg_sleep_latency:.1f}分钟\n"
+        data_summary += f"- 平均夜间觉醒次数：{avg_night_awake_count:.1f}次\n"
+        data_summary += f"- 平均总睡眠时长：{avg_total_sleep_hours:.1f}小时\n"
+        data_summary += f"- 平均夜间觉醒总时长：{avg_night_awake_total:.1f}分钟\n"
+        data_summary += f"- 睡眠质量分布：{sleep_quality_counts.to_dict()}\n"
+        data_summary += f"- 日间情绪状态分布：{mood_counts.to_dict()}\n"
+        
+        # 构建提示词
+        prompt = f"""
+        你是一名专业的睡眠医学专家。请根据以下患者最近7天的睡眠数据，提供专业的分析和改善建议：
+
+        {data_summary}
+
+        请从以下几个方面进行分析和建议：
+        1. 睡眠质量总体评估
+        2. 主要问题识别（如入睡困难、夜间频繁觉醒等）
+        3. 可能的影响因素分析
+        4. 具体的改善建议（包括生活习惯、睡前准备、环境优化等）
+        5. 何时需要寻求专业医疗帮助
+
+        请用中文回答，语言要专业但易懂，建议要具体可行。
+        """
+
+        # 调用通义千问API
+        response = Generation.call(
+            model='qwen-plus',  # 或者使用 'qwen-turbo'、'qwen-max' 等模型
+            prompt=prompt,
+            max_tokens=1500,
+            temperature=0.7
+        )
+        
+        if response.status_code == 200:
+            return response.output.text
+        else:
+            return f"AI分析失败：{response.message}"
+            
+    except Exception as e:
+        return f"AI分析出错：{str(e)}"
+
+# 在展示图表后添加AI分析展示
+# 在 "plot_recent_7_days(name)" 后面添加：
+
+            # AI分析和建议
+            st.subheader("🤖 AI睡眠分析与建议")
+            
+            # 获取最近7天数据用于AI分析
+            ai_analysis_placeholder = st.empty()
+            ai_analysis_placeholder.info("正在为您生成个性化的睡眠分析和建议...")
+            
+            try:
+                recent_data = run_query(
+                    """
+                    SELECT t1.* 
+                    FROM sleep_diary t1
+                    INNER JOIN (
+                        SELECT record_date, MAX(created_at) AS max_created_at
+                        FROM sleep_diary
+                        WHERE name = %s
+                        GROUP BY record_date
+                        ORDER BY record_date DESC
+                        LIMIT 7
+                    ) t2 
+                    ON t1.record_date = t2.record_date AND t1.created_at = t2.max_created_at
+                    ORDER BY t1.record_date ASC
+                    """,
+                    params=(name,)
+                )
+                
+                if not recent_data.empty:
+                    ai_analysis_result = analyze_sleep_data_with_ai(name, recent_data)
+                    ai_analysis_placeholder.empty()  # 清除加载提示
+                    st.markdown(f"""
+                        <div style="
+                            background-color: #f8f9fa;
+                            border-left: 4px solid #007bff;
+                            padding: 20px;
+                            border-radius: 5px;
+                            margin: 20px 0;
+                        ">
+                            <h4>📋 个性化睡眠分析报告</h4>
+                            <div style="line-height: 1.6;">{ai_analysis_result}</div>
+                        </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    ai_analysis_placeholder.warning("暂无足够数据进行AI分析")
+            except Exception as e:
+                ai_analysis_placeholder.error(f"AI分析失败：{str(e)}")
