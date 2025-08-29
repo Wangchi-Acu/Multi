@@ -3,6 +3,9 @@ import pymysql
 import os
 from datetime import date, timedelta
 import time
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
 
 # 自定义CSS样式（保持不变）
 st.markdown("""
@@ -21,7 +24,29 @@ st.markdown("""
 """, unsafe_allow_html=True)
 st.title("🛏️ 睡眠日记")
 
-# 创建时间选项（每5分钟一个选项）
+# 数据库连接函数
+def run_query(sql, params=None):
+    conn = pymysql.connect(
+        host=os.getenv("SQLPUB_HOST"),
+        port=int(os.getenv("SQLPUB_PORT", 3307)),
+        user=os.getenv("SQLPUB_USER"),
+        password=os.getenv("SQLPUB_PWD"),
+        database=os.getenv("SQLPUB_DB"),
+        charset="utf8mb4"
+    )
+    df = pd.read_sql(sql, conn, params=params)
+    conn.close()
+    return df
+
+# 时间 → 分钟（跨天）
+def time_to_min(t):
+    try:
+        h, m = map(int, t.split(":"))
+        return (h if h >= 12 else h + 24) * 60 + m
+    except:
+        return None
+
+# 生成时间选项
 def generate_time_slots(start_hour, end_hour):
     slots = []
     for h in range(start_hour, end_hour + 1):
@@ -29,6 +54,84 @@ def generate_time_slots(start_hour, end_hour):
         for m in range(0, 60, 5):
             slots.append(f"{hour:02d}:{m:02d}")
     return slots
+
+# 绘图函数 - 最近7次汇总图表
+def plot_recent_7_days(patient_name):
+    df = run_query(
+        """
+        SELECT t1.* 
+        FROM sleep_diary t1
+        INNER JOIN (
+            SELECT record_date, MAX(created_at) AS max_created_at
+            FROM sleep_diary
+            WHERE name = %s
+            GROUP BY record_date
+            ORDER BY record_date DESC
+            LIMIT 7
+        ) t2 
+        ON t1.record_date = t2.record_date AND t1.created_at = t2.max_created_at
+        ORDER BY t1.record_date ASC
+        """,
+        params=(patient_name,)
+    )
+    if df.empty:
+        st.warning("暂无记录")
+        return
+
+    df["date_fmt"] = pd.to_datetime(df["record_date"]).dt.strftime("%m-%d")
+
+    # 1. 夜间关键时间
+    night_cols = ["bed_time", "try_sleep_time", "final_wake_time", "get_up_time"]
+    night_labels = ["上床时间", "试图入睡时间", "最终醒来时间", "起床时间"]
+    data1 = []
+    for col, label in zip(night_cols, night_labels):
+        mins = df[col].apply(time_to_min)
+        data1.append(go.Scatter(x=df["date_fmt"], y=mins, name=label,
+                                mode="lines+markers+text", text=df[col],
+                                textposition="top center"))
+    fig1 = go.Figure(data1)
+    fig1.update_layout(
+        title="夜间关键时间点",
+        yaxis=dict(
+            tickformat="%H:%M", 
+            autorange=True,
+            showticklabels=False
+        ),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5)
+    )
+    st.plotly_chart(fig1, use_container_width=True)
+
+    # 2. 日间小睡时间
+    nap_cols = ["nap_start", "nap_end"]
+    nap_labels = ["小睡开始时间", "小睡结束时间"]
+    data2 = []
+    for col, label in zip(nap_cols, nap_labels):
+        mins = df[col].apply(lambda t: int(t.split(":")[0]) * 60 + int(t.split(":")[1]))
+        data2.append(go.Scatter(x=df["date_fmt"], y=mins, name=label,
+                                mode="lines+markers+text", text=df[col],
+                                textposition="top center"))
+    fig2 = go.Figure(data2)
+    fig2.update_layout(
+        title="日间小睡时间",
+        yaxis=dict(
+            tickformat="%H:%M", 
+            autorange=True,
+            showticklabels=False
+        ),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5)
+    )
+    st.plotly_chart(fig2, use_container_width=True)
+
+    # 3-7 其余指标
+    metrics = [("sleep_latency", "入睡所需时长（分钟）"),
+               ("night_awake_count", "夜间觉醒次数"),
+               ("night_awake_total", "夜间觉醒总时长（分钟）"),
+               ("total_sleep_hours", "总睡眠时长（小时）")]
+    for col, title in metrics:
+        fig = px.line(df, x="date_fmt", y=col, markers=True, title=title)
+        st.plotly_chart(fig, use_container_width=True)
+
+    st.dataframe(df.reset_index(drop=True))
 
 # 生成时间选项
 daytime_slots = generate_time_slots(6, 20)  # 白天时间：06:00-20:00
@@ -100,7 +203,7 @@ with st.form("sleep_diary"):
     try_sleep_time = st.select_slider("试图入睡时间", options=evening_slots, value="23:05")
     
     col3, col4 = st.columns(2)
-    sleep_latency = col3.number_input("入睡所需时间（分钟）", 0, 180, 30)
+    sleep_latency = col3.number_input("入睡所需时间（分钟）", 0, 800, 30)
     night_awake_count = col4.number_input("夜间觉醒次数", 0, 15, 0)
     
     night_awake_total = st.number_input("夜间觉醒总时长（分钟）", 0, 300, 0)
@@ -167,85 +270,85 @@ if submitted:
                 "morning_feeling": morning_feeling
             }
 
-            # 连接数据库
-            conn = pymysql.connect(
-                host=os.getenv("SQLPUB_HOST"),
-                port=int(os.getenv("SQLPUB_PORT", 3307)),
-                user=os.getenv("SQLPUB_USER"),
-                password=os.getenv("SQLPUB_PWD"),
-                database=os.getenv("SQLPUB_DB"),
-                charset="utf8mb4"
-            )
-            
-            with conn.cursor() as cursor:
-                # 检查是否已存在该用户同一天的记录
-                check_sql = """
-                SELECT COUNT(*) FROM sleep_diary 
-                WHERE name = %(name)s AND record_date = %(record_date)s
-                """
-                cursor.execute(check_sql, {"name": name, "record_date": record_date.isoformat()})
-                exists = cursor.fetchone()[0] > 0
+            # 显示加载提示
+            with st.spinner("日记正在保存，请勿离开！"):
+                # 连接数据库
+                conn = pymysql.connect(
+                    host=os.getenv("SQLPUB_HOST"),
+                    port=int(os.getenv("SQLPUB_PORT", 3307)),
+                    user=os.getenv("SQLPUB_USER"),
+                    password=os.getenv("SQLPUB_PWD"),
+                    database=os.getenv("SQLPUB_DB"),
+                    charset="utf8mb4"
+                )
                 
-                if exists:
-                    # 更新现有记录
-                    update_sql = """
-                    UPDATE sleep_diary
-                    SET entry_date = %(entry_date)s,
-                        nap_start = %(nap_start)s,
-                        nap_end = %(nap_end)s,
-                        daytime_bed_minutes = %(daytime_bed_minutes)s,
-                        caffeine = %(caffeine)s,
-                        alcohol = %(alcohol)s,
-                        med_name = %(med_name)s,
-                        med_dose = %(med_dose)s,
-                        med_time = %(med_time)s,
-                        daytime_mood = %(daytime_mood)s,
-                        sleep_interference = %(sleep_interference)s,
-                        bed_time = %(bed_time)s,
-                        try_sleep_time = %(try_sleep_time)s,
-                        sleep_latency = %(sleep_latency)s,
-                        night_awake_count = %(night_awake_count)s,
-                        night_awake_total = %(night_awake_total)s,
-                        final_wake_time = %(final_wake_time)s,
-                        get_up_time = %(get_up_time)s,
-                        total_sleep_hours = %(total_sleep_hours)s,
-                        sleep_quality = %(sleep_quality)s,
-                        morning_feeling = %(morning_feeling)s
+                with conn.cursor() as cursor:
+                    # 检查是否已存在该用户同一天的记录
+                    check_sql = """
+                    SELECT COUNT(*) FROM sleep_diary 
                     WHERE name = %(name)s AND record_date = %(record_date)s
                     """
-                    cursor.execute(update_sql, record)
-                    action = "更新"
-                else:
-                    # 插入新记录
-                    insert_sql = """
-                    INSERT INTO sleep_diary
-                    (name, record_date, entry_date, nap_start, nap_end, daytime_bed_minutes, caffeine, alcohol, 
-                     med_name, med_dose, med_time, daytime_mood, sleep_interference, 
-                     bed_time, try_sleep_time, sleep_latency, night_awake_count, 
-                     night_awake_total, final_wake_time, get_up_time, total_sleep_hours,
-                     sleep_quality, morning_feeling)
-                    VALUES
-                    (%(name)s, %(record_date)s, %(entry_date)s, %(nap_start)s, %(nap_end)s, 
-                     %(daytime_bed_minutes)s, %(caffeine)s, %(alcohol)s, %(med_name)s, %(med_dose)s, %(med_time)s, 
-                     %(daytime_mood)s, %(sleep_interference)s, %(bed_time)s, %(try_sleep_time)s, 
-                     %(sleep_latency)s, %(night_awake_count)s, %(night_awake_total)s, 
-                     %(final_wake_time)s, %(get_up_time)s, %(total_sleep_hours)s, 
-                     %(sleep_quality)s, %(morning_feeling)s)
-                    """
-                    cursor.execute(insert_sql, record)
-                    action = "保存"
-            
-            conn.commit()
+                    cursor.execute(check_sql, {"name": name, "record_date": record_date.isoformat()})
+                    exists = cursor.fetchone()[0] > 0
+                    
+                    if exists:
+                        # 更新现有记录
+                        update_sql = """
+                        UPDATE sleep_diary
+                        SET entry_date = %(entry_date)s,
+                            nap_start = %(nap_start)s,
+                            nap_end = %(nap_end)s,
+                            daytime_bed_minutes = %(daytime_bed_minutes)s,
+                            caffeine = %(caffeine)s,
+                            alcohol = %(alcohol)s,
+                            med_name = %(med_name)s,
+                            med_dose = %(med_dose)s,
+                            med_time = %(med_time)s,
+                            daytime_mood = %(daytime_mood)s,
+                            sleep_interference = %(sleep_interference)s,
+                            bed_time = %(bed_time)s,
+                            try_sleep_time = %(try_sleep_time)s,
+                            sleep_latency = %(sleep_latency)s,
+                            night_awake_count = %(night_awake_count)s,
+                            night_awake_total = %(night_awake_total)s,
+                            final_wake_time = %(final_wake_time)s,
+                            get_up_time = %(get_up_time)s,
+                            total_sleep_hours = %(total_sleep_hours)s,
+                            sleep_quality = %(sleep_quality)s,
+                            morning_feeling = %(morning_feeling)s
+                        WHERE name = %(name)s AND record_date = %(record_date)s
+                        """
+                        cursor.execute(update_sql, record)
+                        action = "更新"
+                    else:
+                        # 插入新记录
+                        insert_sql = """
+                        INSERT INTO sleep_diary
+                        (name, record_date, entry_date, nap_start, nap_end, daytime_bed_minutes, caffeine, alcohol, 
+                         med_name, med_dose, med_time, daytime_mood, sleep_interference, 
+                         bed_time, try_sleep_time, sleep_latency, night_awake_count, 
+                         night_awake_total, final_wake_time, get_up_time, total_sleep_hours,
+                         sleep_quality, morning_feeling)
+                        VALUES
+                        (%(name)s, %(record_date)s, %(entry_date)s, %(nap_start)s, %(nap_end)s, 
+                         %(daytime_bed_minutes)s, %(caffeine)s, %(alcohol)s, %(med_name)s, %(med_dose)s, %(med_time)s, 
+                         %(daytime_mood)s, %(sleep_interference)s, %(bed_time)s, %(try_sleep_time)s, 
+                         %(sleep_latency)s, %(night_awake_count)s, %(night_awake_total)s, 
+                         %(final_wake_time)s, %(get_up_time)s, %(total_sleep_hours)s, 
+                         %(sleep_quality)s, %(morning_feeling)s)
+                        """
+                        cursor.execute(insert_sql, record)
+                        action = "保存"
+                
+                conn.commit()
+                conn.close()
             
             # 显示成功消息
-            success_msg = st.success(f"{record_date} 睡眠日记已成功{action}！")
-            time.sleep(2)  # 显示2秒
+            st.success("日记保存完成！")
             
-            # 刷新页面以清空表单
-            st.rerun()
+            # 展示最近7次汇总图表
+            st.subheader("📊 您最近7天的睡眠情况")
+            plot_recent_7_days(name)
                 
         except Exception as e:
             st.error(f"操作失败: {str(e)}")
-        finally:
-            if conn:
-                conn.close()
