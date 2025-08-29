@@ -90,7 +90,21 @@ with tab2:
                                     mode="lines+markers+text", text=df[col],
                                     textposition="top center"))
         fig1 = go.Figure(data1)
-        fig1.update_layout(title="夜间关键时间点", yaxis=dict(tickformat="%H:%M", autorange=True))
+        fig1.update_layout(
+            title="夜间关键时间点",
+            yaxis=dict(
+                tickformat="%H:%M", 
+                autorange=True,
+                showticklabels=False  # 隐藏y轴数字
+            ),
+            legend=dict(
+                orientation="h",        # 水平排列
+                yanchor="bottom",
+                y=1.02,
+                xanchor="center",
+                x=0.5
+            )
+        )
         st.plotly_chart(fig1, use_container_width=True)
 
         # 2. 日间小睡时间
@@ -103,7 +117,21 @@ with tab2:
                                     mode="lines+markers+text", text=df[col],
                                     textposition="top center"))
         fig2 = go.Figure(data2)
-        fig2.update_layout(title="日间小睡时间", yaxis=dict(tickformat="%H:%M", autorange=True))
+        fig2.update_layout(
+            title="日间小睡时间",
+            yaxis=dict(
+                tickformat="%H:%M", 
+                autorange=True,
+                showticklabels=False  # 隐藏y轴数字
+            ),
+            legend=dict(
+                orientation="h",        # 水平排列
+                yanchor="bottom",
+                y=1.02,
+                xanchor="center",
+                x=0.5
+            )
+        )
         st.plotly_chart(fig2, use_container_width=True)
 
         # 3-7 其余指标
