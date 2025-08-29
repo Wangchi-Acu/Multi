@@ -217,7 +217,7 @@ with st.form("sleep_diary"):
     
     col_date1, col_date2 = st.columns(2)
     # 记录日期（日记内容对应的日期，默认为昨天）
-    record_date = col_date1.date_input("记录日期（睡眠日期）", yesterday)
+    record_date = col_date1.date_input("记录日期（一般为填写日期前一天，无特殊情况无需改动）", yesterday)
     
     # 填写日期（提交日记的日期，默认为今天，不可更改）
     with col_date2:
