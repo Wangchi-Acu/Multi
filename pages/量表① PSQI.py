@@ -96,6 +96,25 @@ st.markdown("""
 st.markdown("<h3 style='color:#555555;'>匹兹堡睡眠质量指数（PSQI）在线问卷</h3>", unsafe_allow_html=True)
 st.markdown("> 请根据 **最近一个月** 的实际情况填写")
 
+# 自定义CSS样式
+st.markdown("""
+<style>
+div.stButton > button:first-child {
+    background-color: #1f77b4 !important;
+    color: white !important;
+    font-weight: bold !important;
+    font-size: 20px !important;
+    padding: 15px 30px !important;
+    border-radius: 8px !important;
+    border: 2px solid #1f77b4 !important;
+}
+div.stButton > button:first-child:hover {
+    background-color: #155780 !important;
+    border-color: #155780 !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
 with st.form("psqi_form"):
     st.subheader("① 基本信息")
     name   = st.text_input("姓名")
