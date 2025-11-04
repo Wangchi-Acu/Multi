@@ -48,6 +48,12 @@ def time_to_min(t):
     except:
         return None
 
+# 分钟 → 时间字符串
+def min_to_time(m):
+    h, mi = divmod(int(m), 60)
+    h = h - 24 if h >= 24 else h
+    return f"{h:02d}:{mi:02d}"
+
 # 生成时间选项
 def generate_time_slots(start_hour, end_hour):
     slots = []
@@ -84,7 +90,7 @@ def plot_recent_7_days(patient_name):
 
     # 1. 夜间关键时间
     night_cols = ["bed_time", "try_sleep_time", "final_wake_time", "get_up_time"]
-    night_labels = ["上床时间", "试图入睡时间", "最终醒来时间", "起床时间"]
+    night_labels = ["上床时间", "闭眼准备入睡时间", "最终醒来时间", "起床时间"]
     data1 = []
     for col, label in zip(night_cols, night_labels):
         mins = df[col].apply(time_to_min)
@@ -128,7 +134,8 @@ def plot_recent_7_days(patient_name):
     metrics = [("sleep_latency", "入睡所需时长（分钟）"),
                ("night_awake_count", "夜间觉醒次数"),
                ("night_awake_total", "夜间觉醒总时长（分钟）"),
-               ("total_sleep_hours", "总睡眠时长（小时）")]
+               ("total_sleep_hours", "总睡眠时长（小时）"),
+               ("sleep_efficiency", "睡眠效率（%）")]
     for col, title in metrics:
         fig = px.line(df, x="date_fmt", y=col, markers=True, title=title)
         st.plotly_chart(fig, use_container_width=True)
@@ -240,7 +247,10 @@ with st.form("sleep_diary"):
     
     col_date1, col_date2 = st.columns(2)
     # 记录日期（日记内容对应的日期，默认为昨天）
-    record_date = col_date1.date_input("记录日期（一般为填写日期前一天，无特殊情况无需改动）", yesterday)
+    with col_date1:
+        st.markdown('<div class="readonly-date">', unsafe_allow_html=True)
+        record_date = st.date_input("记录日期（一般为填写日期前一天，无特殊情况无需改动）", yesterday, disabled=True)
+        st.markdown('</div>', unsafe_allow_html=True)
     
     # 填写日期（提交日记的日期，默认为今天，不可更改）
     with col_date2:
@@ -252,6 +262,10 @@ with st.form("sleep_diary"):
     col1, col2 = st.columns(2)
     nap_start = col1.select_slider("昨日白天小睡开始时间", options=daytime_slots, value="14:00")
     nap_end = col2.select_slider("昨日白天小睡结束时间", options=daytime_slots, value="14:05")
+    
+    # 自检：确保开始时间早于或等于结束时间
+    if time_to_min(nap_start) > time_to_min(nap_end):
+        st.error("错误：小睡开始时间不能晚于小睡结束时间，请重新选择。")
     
     # 添加日间卧床时间（单位：分钟）
     daytime_bed_minutes = st.number_input(
@@ -291,7 +305,11 @@ with st.form("sleep_diary"):
     
     st.subheader("夜间睡眠记录")
     bed_time = st.select_slider("昨晚上床时间", options=evening_slots, value="23:00")
-    try_sleep_time = st.select_slider("试图入睡时间", options=evening_slots, value="23:05")
+    try_sleep_time = st.select_slider("闭眼准备入睡时间", options=evening_slots, value="23:05")
+    
+    # 自检：确保上床时间早于或等于闭眼准备入睡时间
+    if time_to_min(bed_time) > time_to_min(try_sleep_time):
+        st.error("错误：上床时间不能晚于闭眼准备入睡时间，请重新选择。")
     
     col3, col4 = st.columns(2)
     sleep_latency = col3.number_input("入睡所需时间（分钟）", 0, 800, 30)
@@ -303,19 +321,43 @@ with st.form("sleep_diary"):
     final_wake_time = col5.select_slider("早晨最终醒来时间", options=morning_slots, value="06:30")
     get_up_time = col6.select_slider("起床时间", options=morning_slots, value="06:35")
     
-    # 总睡眠时间 - 改为小时和分钟两个竖向滑动选择
-    st.markdown('<div class="vertical-sliders">', unsafe_allow_html=True)
-    st.markdown("**总睡眠时间**")
+    # 自动计算总睡眠时间（分钟）
+    # 总睡眠时间 = (最终醒来时间 - 闭眼准备入睡时间) - 夜间觉醒总时长 - 入睡所需时间
+    try_sleep_min = time_to_min(try_sleep_time)
+    final_wake_min = time_to_min(final_wake_time)
     
+    # 计算闭眼准备入睡到最终醒来的总时长（考虑跨天）
+    if final_wake_min >= try_sleep_min:
+        sleep_duration_min = final_wake_min - try_sleep_min
+    else:
+        sleep_duration_min = (24 * 60) - try_sleep_min + final_wake_min
+    
+    total_sleep_minutes = max(0, sleep_duration_min - night_awake_total - sleep_latency)
+    total_sleep_hours = total_sleep_minutes / 60.0
+    
+    # 自动计算睡眠效率（%）
+    # 睡眠效率 = 总睡眠时间 / (起床时间 - 上床时间)
+    bed_min = time_to_min(bed_time)
+    get_up_min = time_to_min(get_up_time)
+    
+    if get_up_min >= bed_min:
+        time_in_bed_min = get_up_min - bed_min
+    else:
+        time_in_bed_min = (24 * 60) - bed_min + get_up_min
+    
+    if time_in_bed_min > 0:
+        sleep_efficiency = (total_sleep_minutes / time_in_bed_min) * 100
+    else:
+        sleep_efficiency = 0.0
+    
+    # 显示自动计算的总睡眠时间和睡眠效率
+    st.markdown('<div class="readonly-data">', unsafe_allow_html=True)
     col_sleep1, col_sleep2 = st.columns(2)
     with col_sleep1:
-        sleep_hours = st.slider("小时", 0, 12, 7, format="%d小时", key="sleep_hours")
+        st.markdown(f"**总睡眠时间:** {total_sleep_hours:.2f} 小时 ({total_sleep_minutes} 分钟)")
     with col_sleep2:
-        sleep_minutes = st.slider("分钟", 0, 55, 0, step=5, format="%d分钟", key="sleep_minutes")
-    
+        st.markdown(f"**睡眠效率:** {sleep_efficiency:.1f}%")
     st.markdown('</div>', unsafe_allow_html=True)
-    
-    total_sleep_hours = sleep_hours + (sleep_minutes / 60.0)
     
     # 睡眠质量自我评价
     sleep_quality = st.radio("睡眠质量自我评价", ["优", "良", "中", "差", "很差"], horizontal=True, index=2)
@@ -330,7 +372,12 @@ with st.form("sleep_diary"):
 
 # 数据库连接和保存逻辑
 if submitted:
-    if not name.strip():
+    # 检查自检错误
+    if time_to_min(nap_start) > time_to_min(nap_end):
+        st.error("小睡开始时间不能晚于小睡结束时间，请重新选择。")
+    elif time_to_min(bed_time) > time_to_min(try_sleep_time):
+        st.error("上床时间不能晚于闭眼准备入睡时间，请重新选择。")
+    elif not name.strip():
         st.error("请填写姓名后再保存")
     else:
         try:
@@ -350,13 +397,14 @@ if submitted:
                 "daytime_mood": daytime_mood,
                 "sleep_interference": sleep_interference,
                 "bed_time": bed_time,
-                "try_sleep_time": try_sleep_time,
+                "try_sleep_time": try_sleep_time,  # 闭眼准备入睡时间
                 "sleep_latency": sleep_latency,
                 "night_awake_count": night_awake_count,
                 "night_awake_total": night_awake_total,
                 "final_wake_time": final_wake_time,
                 "get_up_time": get_up_time,
                 "total_sleep_hours": total_sleep_hours,
+                "sleep_efficiency": sleep_efficiency,
                 "sleep_quality": sleep_quality,
                 "morning_feeling": morning_feeling
             }
@@ -421,6 +469,7 @@ if submitted:
                         final_wake_time = %(final_wake_time)s,
                         get_up_time = %(get_up_time)s,
                         total_sleep_hours = %(total_sleep_hours)s,
+                        sleep_efficiency = %(sleep_efficiency)s,
                         sleep_quality = %(sleep_quality)s,
                         morning_feeling = %(morning_feeling)s
                     WHERE name = %(name)s AND record_date = %(record_date)s
@@ -435,14 +484,14 @@ if submitted:
                      med_name, med_dose, med_time, daytime_mood, sleep_interference, 
                      bed_time, try_sleep_time, sleep_latency, night_awake_count, 
                      night_awake_total, final_wake_time, get_up_time, total_sleep_hours,
-                     sleep_quality, morning_feeling)
+                     sleep_efficiency, sleep_quality, morning_feeling)
                     VALUES
                     (%(name)s, %(record_date)s, %(entry_date)s, %(nap_start)s, %(nap_end)s, 
                      %(daytime_bed_minutes)s, %(caffeine)s, %(alcohol)s, %(med_name)s, %(med_dose)s, %(med_time)s, 
                      %(daytime_mood)s, %(sleep_interference)s, %(bed_time)s, %(try_sleep_time)s, 
                      %(sleep_latency)s, %(night_awake_count)s, %(night_awake_total)s, 
                      %(final_wake_time)s, %(get_up_time)s, %(total_sleep_hours)s, 
-                     %(sleep_quality)s, %(morning_feeling)s)
+                     %(sleep_efficiency)s, %(sleep_quality)s, %(morning_feeling)s)
                     """
                     cursor.execute(insert_sql, record)
                     action = "保存"
