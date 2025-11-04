@@ -73,11 +73,11 @@ field_mapping = {
 # ---------- 单次查询 ----------
 with tab1:
     patient = st.text_input("患者姓名").strip()
-    record_date = st.date_input("记录日期", date.today())
+    entry_date = st.date_input("填写日期", date.today())
     if st.button("查询单次") and patient:
         df = run_query(
-            "SELECT * FROM sleep_diary WHERE name=%s AND record_date=%s ORDER BY created_at DESC",
-            params=(patient, record_date.isoformat())
+            "SELECT * FROM sleep_diary WHERE name=%s AND entry_date=%s ORDER BY created_at DESC",
+            params=(patient, entry_date.isoformat())
         )
         
         if df.empty:
@@ -128,7 +128,7 @@ with tab1:
             
             # 为每条记录创建详细查看
             for idx, row in df.iterrows():
-                with st.expander(f"记录详情 - 日期: {row['record_date']} (创建时间: {row['created_at']})"):
+                with st.expander(f"记录详情 - 日期: {row['record_date']} (填写时间: {row['entry_date']}, 创建时间: {row['created_at']})"):
                     col1, col2 = st.columns(2)
                     
                     # 左列显示夜间睡眠信息
@@ -234,7 +234,7 @@ with tab2:
                 showticklabels=False  # 隐藏y轴数字
             ),
             legend=dict(
-                orientation="h",        # 水平排列
+                orientation="h",        # 永平排列
                 yanchor="bottom",
                 y=1.02,
                 xanchor="center",
