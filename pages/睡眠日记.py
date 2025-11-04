@@ -263,10 +263,6 @@ with st.form("sleep_diary"):
     nap_start = col1.select_slider("昨日白天小睡开始时间", options=daytime_slots, value="14:00")
     nap_end = col2.select_slider("昨日白天小睡结束时间", options=daytime_slots, value="14:05")
     
-    # 自检：确保开始时间早于或等于结束时间
-    if time_to_min(nap_start) > time_to_min(nap_end):
-        st.error("错误：小睡开始时间不能晚于小睡结束时间，请重新选择。")
-    
     # 添加日间卧床时间（单位：分钟）
     daytime_bed_minutes = st.number_input(
         "日间卧床时间（分钟）",
@@ -306,10 +302,6 @@ with st.form("sleep_diary"):
     st.subheader("夜间睡眠记录")
     bed_time = st.select_slider("昨晚上床时间", options=evening_slots, value="23:00")
     try_sleep_time = st.select_slider("闭眼准备入睡时间", options=evening_slots, value="23:05")
-    
-    # 自检：确保上床时间早于或等于闭眼准备入睡时间
-    if time_to_min(bed_time) > time_to_min(try_sleep_time):
-        st.error("错误：上床时间不能晚于闭眼准备入睡时间，请重新选择。")
     
     col3, col4 = st.columns(2)
     sleep_latency = col3.number_input("入睡所需时间（分钟）", 0, 800, 30)
@@ -373,12 +365,37 @@ with st.form("sleep_diary"):
 # 数据库连接和保存逻辑
 if submitted:
     # 检查自检错误
-    if time_to_min(nap_start) > time_to_min(nap_end):
-        st.error("小睡开始时间不能晚于小睡结束时间，请重新选择。")
-    elif time_to_min(bed_time) > time_to_min(try_sleep_time):
-        st.error("上床时间不能晚于闭眼准备入睡时间，请重新选择。")
-    elif not name.strip():
-        st.error("请填写姓名后再保存")
+    nap_start_min = time_to_min(nap_start)
+    nap_end_min = time_to_min(nap_end)
+    bed_min = time_to_min(bed_time)
+    try_sleep_min = time_to_min(try_sleep_time)
+    
+    errors = []
+    if nap_start_min > nap_end_min:
+        errors.append("小睡开始时间不能晚于小睡结束时间，请重新选择。")
+    if bed_min > try_sleep_min:
+        errors.append("上床时间不能晚于闭眼准备入睡时间，请重新选择。")
+    if not name.strip():
+        errors.append("请填写姓名后再保存。")
+    
+    if errors:
+        # 显示醒目错误信息
+        error_html = """
+        <div style="
+            background-color: #f8d7da;
+            border: 2px solid #f5c6cb;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            margin: 20px 0;
+        ">
+            <h3 style="color: #721c24; margin: 0;">⚠️ 发现错误</h3>
+            <p style="font-size: 18px; color: #721c24; margin: 10px 0 0 0;">
+        """
+        for error in errors:
+            error_html += f"<strong>{error}</strong><br>"
+        error_html += "</p></div>"
+        st.markdown(error_html, unsafe_allow_html=True)
     else:
         try:
             # 构建记录数据
