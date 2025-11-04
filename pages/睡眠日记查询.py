@@ -162,9 +162,80 @@ if query_submitted:
         except Exception as e:
             st.error(f"查询失败: {str(e)}")
 
-# 查询统计信息
-st.subheader("📈 查询统计")
+# 其他原有功能保持不变
+st.subheader("📅 按日期范围查询")
+with st.form("date_range_form"):
+    col1, col2 = st.columns(2)
+    start_date = col1.date_input("开始日期")
+    end_date = col2.date_input("结束日期")
+    range_name = st.text_input("患者姓名（可选）")
+    range_submitted = st.form_submit_button("按日期范围查询")
 
+if range_submitted:
+    try:
+        sql = """
+        SELECT *
+        FROM sleep_diary
+        WHERE record_date BETWEEN %s AND %s
+        """
+        params = [start_date, end_date]
+        
+        if range_name.strip():
+            sql += " AND name = %s"
+            params.append(range_name)
+        
+        sql += " ORDER BY record_date DESC, created_at DESC"
+        
+        df = run_query(sql, params=tuple(params))
+        
+        if df.empty:
+            st.warning("未找到符合条件的记录")
+        else:
+            # 将列名替换为中文
+            df_display = df.copy()
+            df_display.columns = [field_mapping.get(col, col) for col in df_display.columns]
+            
+            # 重新排列列的顺序
+            important_cols = [
+                "姓名",
+                "记录日期",
+                "填写日期",
+                "上床时间",
+                "试图入睡时间",
+                "入睡所需时间（分钟）",
+                "夜间觉醒次数",
+                "夜间觉醒总时长（分钟）",
+                "早晨最终醒来时间",
+                "起床时间",
+                "总睡眠时长（小时）",
+                "睡眠质量自我评价",
+                "晨起后精神状态",
+                "日间小睡开始时间",
+                "日间小睡结束时间",
+                "日间卧床时间（分钟）",
+                "日间情绪状态",
+                "睡眠干扰因素",
+                "咖啡因摄入",
+                "酒精摄入",
+                "药物名称",
+                "药物剂量",
+                "服药时间",
+                "创建时间"
+            ]
+            
+            existing_cols = [col for col in important_cols if col in df_display.columns]
+            other_cols = [col for col in df_display.columns if col not in existing_cols]
+            final_cols = existing_cols + other_cols
+            
+            df_display = df_display[final_cols]
+            
+            st.success(f"找到 {len(df)} 条记录")
+            st.dataframe(df_display, use_container_width=True)
+    
+    except Exception as e:
+        st.error(f"查询失败: {str(e)}")
+
+st.subheader("📊 查询统计")
 with st.form("stats_form"):
     stats_name = st.text_input("请输入患者姓名（用于统计）")
     stats_submitted = st.form_submit_button("获取统计信息")
