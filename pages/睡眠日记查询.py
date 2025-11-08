@@ -5,6 +5,7 @@ import os
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import date
+import io
 
 st.set_page_config(page_title="睡眠日记查询", layout="wide")
 st.title("📊 睡眠日记查询")
@@ -50,6 +51,7 @@ field_mapping = {
     "nap_start": "日间小睡开始时间",
     "nap_end": "日间小睡结束时间",
     "daytime_bed_minutes": "日间卧床时间（分钟）",
+    "nap_duration": "昨日白天小睡总时长（分钟）",  # 添加新的字段
     "caffeine": "咖啡因摄入",
     "alcohol": "酒精摄入",
     "med_name": "药物名称",
@@ -65,10 +67,19 @@ field_mapping = {
     "final_wake_time": "早晨最终醒来时间",
     "get_up_time": "起床时间",
     "total_sleep_hours": "总睡眠时长（小时）",
+    "sleep_efficiency": "睡眠效率（%）",
     "sleep_quality": "睡眠质量自我评价",
     "morning_feeling": "晨起后精神状态",
     "created_at": "创建时间"
 }
+
+def convert_df_to_excel(df):
+    """将DataFrame转换为Excel格式的字节流"""
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='睡眠日记数据')
+    processed_data = output.getvalue()
+    return processed_data
 
 # ---------- 单次查询 ----------
 with tab1:
@@ -100,11 +111,13 @@ with tab1:
                 "早晨最终醒来时间",
                 "起床时间",
                 "总睡眠时长（小时）",
+                "睡眠效率（%）",
                 "睡眠质量自我评价",
                 "晨起后精神状态",
                 "日间小睡开始时间",
                 "日间小睡结束时间",
                 "日间卧床时间（分钟）",
+                "昨日白天小睡总时长（分钟）",  # 添加新的字段
                 "日间情绪状态",
                 "睡眠干扰因素",
                 "咖啡因摄入",
@@ -126,6 +139,15 @@ with tab1:
             # 显示数据框
             st.dataframe(df_display, use_container_width=True)
             
+            # 提供Excel下载
+            excel_data = convert_df_to_excel(df_display)
+            st.download_button(
+                label="📥 下载Excel",
+                data=excel_data,
+                file_name=f"单次查询_{patient}_{entry_date}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+            
             # 为每条记录创建详细查看
             for idx, row in df.iterrows():
                 with st.expander(f"记录详情 - 日期: {row['record_date']} (填写时间: {row['entry_date']}, 创建时间: {row['created_at']})"):
@@ -142,6 +164,7 @@ with tab1:
                         st.write(f"**早晨最终醒来时间:** {row['final_wake_time']}")
                         st.write(f"**起床时间:** {row['get_up_time']}")
                         st.write(f"**总睡眠时长:** {row['total_sleep_hours']:.2f} 小时")
+                        st.write(f"**睡眠效率:** {row['sleep_efficiency']:.1f}%")
                         st.write(f"**睡眠质量自我评价:** {row['sleep_quality']}")
                         st.write(f"**晨起后精神状态:** {row['morning_feeling']}")
                     
@@ -151,6 +174,7 @@ with tab1:
                         st.write(f"**日间小睡开始时间:** {row['nap_start']}")
                         st.write(f"**日间小睡结束时间:** {row['nap_end']}")
                         st.write(f"**日间卧床时间:** {row['daytime_bed_minutes']} 分钟")
+                        st.write(f"**昨日白天小睡总时长:** {row['nap_duration']} 分钟")
                         st.write(f"**日间情绪状态:** {row['daytime_mood']}")
                         st.write(f"**咖啡因摄入:** {row['caffeine']}")
                         st.write(f"**酒精摄入:** {row['alcohol']}")
@@ -234,7 +258,7 @@ with tab2:
                 showticklabels=False  # 隐藏y轴数字
             ),
             legend=dict(
-                orientation="h",        # 永平排列
+                orientation="h",        # 水平排列
                 yanchor="bottom",
                 y=1.02,
                 xanchor="center",
@@ -247,7 +271,8 @@ with tab2:
         metrics = [("sleep_latency", "入睡所需时长（分钟）"),
                    ("night_awake_count", "夜间觉醒次数"),
                    ("night_awake_total", "夜间觉醒总时长（分钟）"),
-                   ("total_sleep_hours", "总睡眠时长（小时）")]
+                   ("total_sleep_hours", "总睡眠时长（小时）"),
+                   ("sleep_efficiency", "睡眠效率（%）")]  # 添加睡眠效率
         for col, title in metrics:
             fig = px.line(df, x="date_fmt", y=col, markers=True, title=title)
             st.plotly_chart(fig, use_container_width=True)
@@ -268,11 +293,13 @@ with tab2:
             "早晨最终醒来时间",
             "起床时间",
             "总睡眠时长（小时）",
+            "睡眠效率（%）",
             "睡眠质量自我评价",
             "晨起后精神状态",
             "日间小睡开始时间",
             "日间小睡结束时间",
             "日间卧床时间（分钟）",
+            "昨日白天小睡总时长（分钟）",
             "日间情绪状态",
             "睡眠干扰因素",
             "咖啡因摄入",
@@ -290,6 +317,15 @@ with tab2:
         df_display = df_display[final_cols]
         
         st.dataframe(df_display.reset_index(drop=True))
+        
+        # 提供Excel下载
+        excel_data = convert_df_to_excel(df_display)
+        st.download_button(
+            label="📥 下载Excel",
+            data=excel_data,
+            file_name=f"最近7次汇总_{patient}_{date.today()}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
 
 # ---------- 按日期查询 ----------
 with tab3:
@@ -321,11 +357,13 @@ with tab3:
                 "早晨最终醒来时间",
                 "起床时间",
                 "总睡眠时长（小时）",
+                "睡眠效率（%）",
                 "睡眠质量自我评价",
                 "晨起后精神状态",
                 "日间小睡开始时间",
                 "日间小睡结束时间",
                 "日间卧床时间（分钟）",
+                "昨日白天小睡总时长（分钟）",
                 "日间情绪状态",
                 "睡眠干扰因素",
                 "咖啡因摄入",
@@ -343,3 +381,12 @@ with tab3:
             df_display = df_display[final_cols]
             
             st.dataframe(df_display, use_container_width=True)
+            
+            # 提供Excel下载
+            excel_data = convert_df_to_excel(df_display)
+            st.download_button(
+                label="📥 下载Excel",
+                data=excel_data,
+                file_name=f"按日期查询_{query_date}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
