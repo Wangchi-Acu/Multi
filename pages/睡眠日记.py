@@ -269,6 +269,45 @@ now_beijing = datetime.now(beijing_tz)      # 获取当前北京时间
 today = now_beijing.date()                  # 提取日期部分
 yesterday = today - timedelta(days=1)       # 计算昨天日期
 
+# 安眠药物选项
+med_options = [
+    "无",
+    "艾司唑仑 Estazolam（ProSom）",
+    "氟西泮 Flurazepam（Dalmane）",
+    "夸西泮 Quazepam（Doral）",
+    "替马西泮 Temazepam（Restoril）",
+    "三唑仑 Triazolam（Halcion）",
+    "劳拉西泮 Lorazepam（Ativan）——常用于伴焦虑的失眠",
+    "地西泮 Diazepam（Valium）——偶用于夜间肌痉挛或磨牙",
+    "氯硝西泮 Clonazepam（Klonopin）——多用于伴夜间惊跳/癫痫者",
+    "佐匹克隆 Eszopiclone（Lunesta）",
+    "扎来普隆 Zaleplon（Sonata）",
+    "唑吡坦 Zolpidem（Ambien、Edluar、Intermezzo、Zolpimist）",
+    "曲唑酮 Trazodone",
+    "米氮平 Mirtazapine（Remeron）",
+    "喹硫平 Quetiapine（Seroquel）",
+    "苏沃雷生 Suvorexant（Belsomra）",
+    "莱博雷生 Lemborexant（Dayvigo）",
+    "达利雷生 Daridorexant（Quviviq）",
+    "雷美替胺 Ramelteon（Rozerem）",
+    "他司美琼 Tasimelteon（Hetlioz）",
+    "多塞平 Doxepin 3-6 mg（Silenor）",
+    "仲丁巴比妥 Butabarbital（Butisol）",
+    "司可巴比妥 Secobarbital（Seconal）",
+    "苯海拉明 Diphenhydramine（Benadryl、Nytol、Sominex 等）",
+    "多西拉敏 Doxylamine（Unisom）",
+    "加巴喷丁 Gabapentin（Neurontin）",
+    "普瑞巴林 Pregabalin（Lyrica）",
+    "卡马西平 Carbamazepine（Tegretol）——多与夜间肢体抽动症共病时使用",
+    "加巴喷丁缓释 Gabapentin enacarbil（Horizant）",
+    "普拉克索 Pramipexole（Mirapex）",
+    "罗匹尼罗 Ropinirole（Requip）",
+    "罗替戈汀 Rotigotine（Neupro）",
+    "莫达非尼 Modafinil（Provigil）",
+    "阿莫达非尼 Armodafinil（Nuvigil）",
+    "皮托利生 Pitolisant（Wakix）"
+]
+
 # 创建表单
 with st.form("sleep_diary"):
     # 姓名和日期部分
@@ -314,12 +353,12 @@ with st.form("sleep_diary"):
     st.subheader("安眠药物使用")
     # 安眠药物①
     med_col1, med_col2 = st.columns(2)
-    med_name1 = med_col1.text_input("安眠药物①名称", placeholder="无", value=st.session_state.form_data["med_name1"]) # 从 session_state 加载
+    med_name1 = st.selectbox("安眠药物①名称", options=med_options, index=med_options.index(st.session_state.form_data["med_name1"]) if st.session_state.form_data["med_name1"] in med_options else 0) # 从 session_state 加载
     med_dose1 = med_col2.text_input("安眠药物①剂量", placeholder="0mg", value=st.session_state.form_data["med_dose1"]) # 从 session_state 加载
     
     # 安眠药物②
     med_col3, med_col4 = st.columns(2)
-    med_name2 = med_col3.text_input("安眠药物②名称", placeholder="无", value=st.session_state.form_data["med_name2"]) # 从 session_state 加载
+    med_name2 = st.selectbox("安眠药物②名称", options=med_options, index=med_options.index(st.session_state.form_data["med_name2"]) if st.session_state.form_data["med_name2"] in med_options else 0) # 从 session_state 加载
     med_dose2 = med_col4.text_input("安眠药物②剂量", placeholder="0mg", value=st.session_state.form_data["med_dose2"]) # 从 session_state 加载
     
     # 安眠药物服用时间 - 一直可填写状态
