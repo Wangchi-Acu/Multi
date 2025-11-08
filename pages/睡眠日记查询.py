@@ -218,7 +218,7 @@ with tab2:
         night_labels = ["上床时间", "试图入睡时间", "最终醒来时间", "起床时间"]
         data1 = []
         for col, label in zip(night_cols, night_labels):
-            mins = df[col].apply(time_to_min)
+            mins = df[col].apply(time_to_min)  # 使用已有的 time_to_min 函数
             data1.append(go.Scatter(x=df["date_fmt"], y=mins, name=label,
                                     mode="lines+markers+text", text=df[col],
                                     textposition="top center"))
@@ -240,12 +240,13 @@ with tab2:
         )
         st.plotly_chart(fig1, use_container_width=True)
 
-        # 2. 日间小睡时间
+        # 2. 日间小睡时间 - 修改处理逻辑
         nap_cols = ["nap_start", "nap_end"]
         nap_labels = ["小睡开始时间", "小睡结束时间"]
         data2 = []
         for col, label in zip(nap_cols, nap_labels):
-            mins = df[col].apply(lambda t: int(t.split(":")[0]) * 60 + int(t.split(":")[1]))
+            # 只处理非"无"的时间字符串
+            mins = df[col].apply(lambda t: time_to_min(t) if pd.notna(t) and t != "无" and t != "" else None)
             data2.append(go.Scatter(x=df["date_fmt"], y=mins, name=label,
                                     mode="lines+markers+text", text=df[col],
                                     textposition="top center"))
