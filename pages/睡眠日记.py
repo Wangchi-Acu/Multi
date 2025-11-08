@@ -363,12 +363,13 @@ with st.form("sleep_diary"):
     med_dose2 = st.text_input("安眠药物②剂量", placeholder="0mg", value=st.session_state.form_data["med_dose2"]) # 从 session_state 加载
     
     # 安眠药物服用时间 - 改为下拉框选择
-    col_med_time1, col_med_time2 = st.columns(2)
+    col_med_time1, col_med_time2 = st.columns([1, 1])  # 设置列宽比例为1:1，使每列宽度为原宽度的一半
     with col_med_time1:
         # 安全获取小时值
         med_time_parts = st.session_state.form_data["med_time"].split(":")
         med_time_hour = med_time_parts[0] if len(med_time_parts) == 2 else "22"
-        med_hour = st.selectbox("安眠药物服用时间 - 小时", options=hour_options, index=hour_options.index(med_time_hour))
+        med_hour = st.selectbox("安眠药物服用时间", options=hour_options, index=hour_options.index(med_time_hour))
+        st.write("时")  # 显示单位“时”
     with col_med_time2:
         # 安全获取分钟值
         med_time_parts = st.session_state.form_data["med_time"].split(":")
@@ -376,7 +377,8 @@ with st.form("sleep_diary"):
         # 确保分钟值在minute_options中，如果不在则使用默认值
         if med_time_minute not in minute_options:
             med_time_minute = "00"
-        med_minute = st.selectbox("安眠药物服用时间 - 分钟", options=minute_options, index=minute_options.index(med_time_minute))
+        med_minute = st.selectbox("", options=minute_options, index=minute_options.index(med_time_minute), label_visibility="collapsed")  # 隐藏标签
+        st.write("分")  # 显示单位“分”
     med_time = f"{med_hour}:{med_minute}"
     
     # 日间情绪状态
@@ -398,31 +400,35 @@ with st.form("sleep_diary"):
     
     st.subheader("夜间睡眠记录")
     # 上床时间
-    col_bed1, col_bed2 = st.columns(2)
+    col_bed1, col_bed2 = st.columns([1, 1])  # 设置列宽比例为1:1
     with col_bed1:
         bed_time_parts = st.session_state.form_data["bed_time"].split(":")
         bed_time_hour = bed_time_parts[0] if len(bed_time_parts) == 2 else "23"
-        bed_hour = st.selectbox("昨晚上床时间 - 小时", options=hour_options, index=hour_options.index(bed_time_hour))
+        bed_hour = st.selectbox("昨晚上床时间", options=hour_options, index=hour_options.index(bed_time_hour))
+        st.write("时")  # 显示单位“时”
     with col_bed2:
         bed_time_parts = st.session_state.form_data["bed_time"].split(":")
         bed_time_minute = bed_time_parts[1] if len(bed_time_parts) == 2 else "00"
         if bed_time_minute not in minute_options:
             bed_time_minute = "00"
-        bed_minute = st.selectbox("昨晚上床时间 - 分钟", options=minute_options, index=minute_options.index(bed_time_minute))
+        bed_minute = st.selectbox("", options=minute_options, index=minute_options.index(bed_time_minute), label_visibility="collapsed")  # 隐藏标签
+        st.write("分")  # 显示单位“分”
     bed_time = f"{bed_hour}:{bed_minute}"
     
     # 闭眼准备入睡时间
-    col_try1, col_try2 = st.columns(2)
+    col_try1, col_try2 = st.columns([1, 1])  # 设置列宽比例为1:1
     with col_try1:
         try_time_parts = st.session_state.form_data["try_sleep_time"].split(":")
         try_time_hour = try_time_parts[0] if len(try_time_parts) == 2 else "23"
-        try_hour = st.selectbox("闭眼准备入睡时间 - 小时", options=hour_options, index=hour_options.index(try_time_hour))
+        try_hour = st.selectbox("闭眼准备入睡时间", options=hour_options, index=hour_options.index(try_time_hour))
+        st.write("时")  # 显示单位“时”
     with col_try2:
         try_time_parts = st.session_state.form_data["try_sleep_time"].split(":")
         try_time_minute = try_time_parts[1] if len(try_time_parts) == 2 else "05"
         if try_time_minute not in minute_options:
             try_time_minute = "05"
-        try_minute = st.selectbox("闭眼准备入睡时间 - 分钟", options=minute_options, index=minute_options.index(try_time_minute))
+        try_minute = st.selectbox("", options=minute_options, index=minute_options.index(try_time_minute), label_visibility="collapsed")  # 隐藏标签
+        st.write("分")  # 显示单位“分”
     try_sleep_time = f"{try_hour}:{try_minute}"
     
     col3, col4 = st.columns(2)
@@ -432,31 +438,35 @@ with st.form("sleep_diary"):
     night_awake_total = st.number_input("夜间觉醒总时长（分钟）", 0, 300, value=st.session_state.form_data["night_awake_total"]) # 从 session_state 加载
 
     # 早晨最终醒来时间
-    col_final1, col_final2 = st.columns(2)
+    col_final1, col_final2 = st.columns([1, 1])  # 设置列宽比例为1:1
     with col_final1:
         final_time_parts = st.session_state.form_data["final_wake_time"].split(":")
         final_time_hour = final_time_parts[0] if len(final_time_parts) == 2 else "06"
-        final_hour = st.selectbox("早晨最终醒来时间 - 小时", options=hour_options, index=hour_options.index(final_time_hour))
+        final_hour = st.selectbox("早晨最终醒来时间", options=hour_options, index=hour_options.index(final_time_hour))
+        st.write("时")  # 显示单位“时”
     with col_final2:
         final_time_parts = st.session_state.form_data["final_wake_time"].split(":")
         final_time_minute = final_time_parts[1] if len(final_time_parts) == 2 else "30"
         if final_time_minute not in minute_options:
             final_time_minute = "30"
-        final_minute = st.selectbox("早晨最终醒来时间 - 分钟", options=minute_options, index=minute_options.index(final_time_minute))
+        final_minute = st.selectbox("", options=minute_options, index=minute_options.index(final_time_minute), label_visibility="collapsed")  # 隐藏标签
+        st.write("分")  # 显示单位“分”
     final_wake_time = f"{final_hour}:{final_minute}"
     
     # 起床时间
-    col_up1, col_up2 = st.columns(2)
+    col_up1, col_up2 = st.columns([1, 1])  # 设置列宽比例为1:1
     with col_up1:
         up_time_parts = st.session_state.form_data["get_up_time"].split(":")
         up_time_hour = up_time_parts[0] if len(up_time_parts) == 2 else "06"
-        up_hour = st.selectbox("起床时间 - 小时", options=hour_options, index=hour_options.index(up_time_hour))
+        up_hour = st.selectbox("起床时间", options=hour_options, index=hour_options.index(up_time_hour))
+        st.write("时")  # 显示单位“时”
     with col_up2:
         up_time_parts = st.session_state.form_data["get_up_time"].split(":")
         up_time_minute = up_time_parts[1] if len(up_time_parts) == 2 else "35"
         if up_time_minute not in minute_options:
             up_time_minute = "35"
-        up_minute = st.selectbox("起床时间 - 分钟", options=minute_options, index=minute_options.index(up_time_minute))
+        up_minute = st.selectbox("", options=minute_options, index=minute_options.index(up_time_minute), label_visibility="collapsed")  # 隐藏标签
+        st.write("分")  # 显示单位“分”
     get_up_time = f"{up_hour}:{up_minute}"
     
     # 自动计算总睡眠时间（分钟）
