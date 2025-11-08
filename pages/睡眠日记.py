@@ -268,6 +268,17 @@ with st.form("sleep_diary"):
         nap_start = col1.select_slider("昨日白天小睡开始时间", options=daytime_slots, value="14:00")
         nap_end = col2.select_slider("昨日白天小睡结束时间", options=daytime_slots, value="14:05")
     else:
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown('<div class="readonly-data" style="background-color: #e9ecef; padding: 10px; border-radius: 5px; margin-bottom: 10px;">', unsafe_allow_html=True)
+            st.text("昨日白天小睡开始时间")
+            st.text("无")
+            st.markdown('</div>', unsafe_allow_html=True)
+        with col2:
+            st.markdown('<div class="readonly-data" style="background-color: #e9ecef; padding: 10px; border-radius: 5px; margin-bottom: 10px;">', unsafe_allow_html=True)
+            st.text("昨日白天小睡结束时间")
+            st.text("无")
+            st.markdown('</div>', unsafe_allow_html=True)
         nap_start = "无"
         nap_end = "无"
     
@@ -295,10 +306,17 @@ with st.form("sleep_diary"):
     med_name2 = med_col3.text_input("安眠药物②名称", placeholder="无")
     med_dose2 = med_col4.text_input("安眠药物②剂量", placeholder="0mg")
     
+    # 判断是否有药物使用
+    has_meds = (med_name1 != "无" and med_name1.strip() != "") or (med_name2 != "无" and med_name2.strip() != "")
+    
     # 根据药物名称决定是否显示时间选择器
-    if (med_name1 != "无" and med_name1.strip() != "") or (med_name2 != "无" and med_name2.strip() != ""):
+    if has_meds:
         med_time = st.select_slider("安眠药物服用时间", options=evening_slots, value="22:00")
     else:
+        st.markdown('<div class="readonly-data" style="background-color: #e9ecef; padding: 10px; border-radius: 5px; margin-bottom: 10px;">', unsafe_allow_html=True)
+        st.text("安眠药物服用时间")
+        st.text("无")
+        st.markdown('</div>', unsafe_allow_html=True)
         med_time = "无"
     
     # 日间情绪状态
