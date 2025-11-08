@@ -136,12 +136,4 @@ if st.button("提交 SDS"):
     level = "无抑郁" if std < 53 else "轻度抑郁" if std < 63 else "中度抑郁" if std < 73 else "重度抑郁"
     st.info(f"结论：{level}")
 
-    # 防刷新下载
-    csv_bytes = pd.DataFrame([record]).to_csv(index=False).encode("utf-8-sig")
-    st.download_button(
-        label="📥 下载结果 CSV",
-        data=csv_bytes,
-        file_name=os.path.basename(path),
-        mime="text/csv",
-        key="download_single_sds"
-    )
+    st.success("SDS 提交成功！")
