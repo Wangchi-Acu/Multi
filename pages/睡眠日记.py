@@ -259,9 +259,10 @@ def analyze_sleep_data_with_ai(patient_name):
         return f"AI分析出错：{str(e)}"
 
 # 生成时间选项
-daytime_slots = generate_time_slots(6, 20)  # 白天时间：06:00-20:00
-evening_slots = generate_time_slots(20, 26)  # 晚上时间：20:00-02:00（26=02:00+24）
-morning_slots = generate_time_slots(2, 12)   # 早晨时间：02:00-12:00
+# 生成小时选项
+hour_options = [f"{h:02d}" for h in range(24)]
+# 生成分钟选项（以5为单位）
+minute_options = [f"{m:02d}" for m in range(0, 60, 5)]
 
 # 日期处理 - 修改：使用北京时间
 beijing_tz = pytz.timezone('Asia/Shanghai') # 定义北京时间时区
@@ -359,8 +360,13 @@ with st.form("sleep_diary"):
     med_name2 = st.selectbox("安眠药物②名称", options=med_options, index=med_options.index(st.session_state.form_data["med_name2"]) if st.session_state.form_data["med_name2"] in med_options else 0) # 从 session_state 加载
     med_dose2 = st.text_input("安眠药物②剂量", placeholder="0mg", value=st.session_state.form_data["med_dose2"]) # 从 session_state 加载
     
-    # 安眠药物服用时间 - 一直可填写状态
-    med_time = st.select_slider("安眠药物服用时间", options=evening_slots, value=st.session_state.form_data["med_time"]) # 从 session_state 加载
+    # 安眠药物服用时间 - 改为下拉框选择
+    col_med_time1, col_med_time2 = st.columns(2)
+    with col_med_time1:
+        med_hour = st.selectbox("安眠药物服用时间 - 小时", options=hour_options, index=hour_options.index(st.session_state.form_data["med_time"].split(":")[0]) if st.session_state.form_data["med_time"] != "22:00" else 22)
+    with col_med_time2:
+        med_minute = st.selectbox("安眠药物服用时间 - 分钟", options=minute_options, index=minute_options.index(st.session_state.form_data["med_time"].split(":")[1]) if st.session_state.form_data["med_time"] != "22:00" else 0)
+    med_time = f"{med_hour}:{med_minute}"
     
     # 日间情绪状态
     daytime_mood = st.radio("昨日日间情绪状态", ["优", "良", "中", "差", "很差"], horizontal=True, index=["优", "良", "中", "差", "很差"].index(st.session_state.form_data["daytime_mood"])) # 从 session_state 加载
@@ -380,8 +386,21 @@ with st.form("sleep_diary"):
         sleep_interference = ";".join(selected_interference)
     
     st.subheader("夜间睡眠记录")
-    bed_time = st.select_slider("昨晚上床时间", options=evening_slots, value=st.session_state.form_data["bed_time"]) # 从 session_state 加载
-    try_sleep_time = st.select_slider("闭眼准备入睡时间", options=evening_slots, value=st.session_state.form_data["try_sleep_time"]) # 从 session_state 加载
+    # 上床时间
+    col_bed1, col_bed2 = st.columns(2)
+    with col_bed1:
+        bed_hour = st.selectbox("昨晚上床时间 - 小时", options=hour_options, index=hour_options.index(st.session_state.form_data["bed_time"].split(":")[0]) if st.session_state.form_data["bed_time"] != "23:00" else 23)
+    with col_bed2:
+        bed_minute = st.selectbox("昨晚上床时间 - 分钟", options=minute_options, index=minute_options.index(st.session_state.form_data["bed_time"].split(":")[1]) if st.session_state.form_data["bed_time"] != "23:00" else 0)
+    bed_time = f"{bed_hour}:{bed_minute}"
+    
+    # 闭眼准备入睡时间
+    col_try1, col_try2 = st.columns(2)
+    with col_try1:
+        try_hour = st.selectbox("闭眼准备入睡时间 - 小时", options=hour_options, index=hour_options.index(st.session_state.form_data["try_sleep_time"].split(":")[0]) if st.session_state.form_data["try_sleep_time"] != "23:05" else 23)
+    with col_try2:
+        try_minute = st.selectbox("闭眼准备入睡时间 - 分钟", options=minute_options, index=minute_options.index(st.session_state.form_data["try_sleep_time"].split(":")[1]) if st.session_state.form_data["try_sleep_time"] != "23:05" else 5)
+    try_sleep_time = f"{try_hour}:{try_minute}"
     
     col3, col4 = st.columns(2)
     sleep_latency = col3.number_input("入睡所需时间（分钟）", 0, 800, value=st.session_state.form_data["sleep_latency"]) # 从 session_state 加载
@@ -389,9 +408,21 @@ with st.form("sleep_diary"):
     
     night_awake_total = st.number_input("夜间觉醒总时长（分钟）", 0, 300, value=st.session_state.form_data["night_awake_total"]) # 从 session_state 加载
 
-    col5, col6 = st.columns(2)
-    final_wake_time = col5.select_slider("早晨最终醒来时间", options=morning_slots, value=st.session_state.form_data["final_wake_time"]) # 从 session_state 加载
-    get_up_time = col6.select_slider("起床时间", options=morning_slots, value=st.session_state.form_data["get_up_time"]) # 从 session_state 加载
+    # 早晨最终醒来时间
+    col_final1, col_final2 = st.columns(2)
+    with col_final1:
+        final_hour = st.selectbox("早晨最终醒来时间 - 小时", options=hour_options, index=hour_options.index(st.session_state.form_data["final_wake_time"].split(":")[0]) if st.session_state.form_data["final_wake_time"] != "06:30" else 6)
+    with col_final2:
+        final_minute = st.selectbox("早晨最终醒来时间 - 分钟", options=minute_options, index=minute_options.index(st.session_state.form_data["final_wake_time"].split(":")[1]) if st.session_state.form_data["final_wake_time"] != "06:30" else 30)
+    final_wake_time = f"{final_hour}:{final_minute}"
+    
+    # 起床时间
+    col_up1, col_up2 = st.columns(2)
+    with col_up1:
+        up_hour = st.selectbox("起床时间 - 小时", options=hour_options, index=hour_options.index(st.session_state.form_data["get_up_time"].split(":")[0]) if st.session_state.form_data["get_up_time"] != "06:35" else 6)
+    with col_up2:
+        up_minute = st.selectbox("起床时间 - 分钟", options=minute_options, index=minute_options.index(st.session_state.form_data["get_up_time"].split(":")[1]) if st.session_state.form_data["get_up_time"] != "06:35" else 35)
+    get_up_time = f"{up_hour}:{up_minute}"
     
     # 自动计算总睡眠时间（分钟）
     # 总睡眠时间 = (最终醒来时间 - 闭眼准备入睡时间) - 夜间觉醒总时长 - 入睡所需时间
