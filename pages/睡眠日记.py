@@ -17,6 +17,32 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# 初始化 session_state 变量
+if 'form_data' not in st.session_state:
+    st.session_state.form_data = {
+        "name": "",
+        "nap_duration": 0,
+        "daytime_bed_minutes": 0,
+        "caffeine": "无",
+        "alcohol": "无",
+        "med_name1": "无",
+        "med_dose1": "0mg",
+        "med_name2": "无",
+        "med_dose2": "0mg",
+        "med_time": "22:00",
+        "daytime_mood": "中",
+        "selected_interference": ["无"],
+        "bed_time": "23:00",
+        "try_sleep_time": "23:05",
+        "sleep_latency": 30,
+        "night_awake_count": 0,
+        "night_awake_total": 0,
+        "final_wake_time": "06:30",
+        "get_up_time": "06:35",
+        "sleep_quality": "中",
+        "morning_feeling": "中"
+    }
+
 st.set_page_config(page_title="睡眠日记", layout="centered")
 st.image("jsszyylogo.png", width=500)
 st.markdown("""
@@ -246,7 +272,7 @@ yesterday = today - timedelta(days=1)       # 计算昨天日期
 # 创建表单
 with st.form("sleep_diary"):
     # 姓名和日期部分
-    name = st.text_input("姓名", placeholder="请输入您的姓名")
+    name = st.text_input("姓名", placeholder="请输入您的姓名", value=st.session_state.form_data["name"])
     
     col_date1, col_date2 = st.columns(2)
     # 记录日期（日记内容对应的日期，默认为昨天）
@@ -267,7 +293,7 @@ with st.form("sleep_diary"):
         "昨日白天小睡总时长（分钟）",
         min_value=0,
         max_value=600,
-        value=0,
+        value=st.session_state.form_data["nap_duration"], # 从 session_state 加载
         step=5,
         help="白天小睡的总时长"
     )
@@ -277,36 +303,36 @@ with st.form("sleep_diary"):
         "日间卧床时间（分钟）",
         min_value=0,
         max_value=600,
-        value=0,
+        value=st.session_state.form_data["daytime_bed_minutes"], # 从 session_state 加载
         step=5,
         help="除小睡外，日间在床上休息但未入睡的时间"
     )
     
-    caffeine = st.text_input("昨日咖啡因摄入（例：咖啡，8:00/2杯）", value="无")
-    alcohol = st.text_input("昨日酒精摄入（例：啤酒，19:00/1瓶）", value="无")
+    caffeine = st.text_input("昨日咖啡因摄入（例：咖啡，8:00/2杯）", value=st.session_state.form_data["caffeine"]) # 从 session_state 加载
+    alcohol = st.text_input("昨日酒精摄入（例：啤酒，19:00/1瓶）", value=st.session_state.form_data["alcohol"]) # 从 session_state 加载
     
     st.subheader("安眠药物使用")
     # 安眠药物①
     med_col1, med_col2 = st.columns(2)
-    med_name1 = med_col1.text_input("安眠药物①名称", placeholder="无")
-    med_dose1 = med_col2.text_input("安眠药物①剂量", placeholder="0mg")
+    med_name1 = med_col1.text_input("安眠药物①名称", placeholder="无", value=st.session_state.form_data["med_name1"]) # 从 session_state 加载
+    med_dose1 = med_col2.text_input("安眠药物①剂量", placeholder="0mg", value=st.session_state.form_data["med_dose1"]) # 从 session_state 加载
     
     # 安眠药物②
     med_col3, med_col4 = st.columns(2)
-    med_name2 = med_col3.text_input("安眠药物②名称", placeholder="无")
-    med_dose2 = med_col4.text_input("安眠药物②剂量", placeholder="0mg")
+    med_name2 = med_col3.text_input("安眠药物②名称", placeholder="无", value=st.session_state.form_data["med_name2"]) # 从 session_state 加载
+    med_dose2 = med_col4.text_input("安眠药物②剂量", placeholder="0mg", value=st.session_state.form_data["med_dose2"]) # 从 session_state 加载
     
     # 安眠药物服用时间 - 一直可填写状态
-    med_time = st.select_slider("安眠药物服用时间", options=evening_slots, value="22:00")
+    med_time = st.select_slider("安眠药物服用时间", options=evening_slots, value=st.session_state.form_data["med_time"]) # 从 session_state 加载
     
     # 日间情绪状态
-    daytime_mood = st.radio("昨日日间情绪状态", ["优", "良", "中", "差", "很差"], horizontal=True, index=2)
+    daytime_mood = st.radio("昨日日间情绪状态", ["优", "良", "中", "差", "很差"], horizontal=True, index=["优", "良", "中", "差", "很差"].index(st.session_state.form_data["daytime_mood"])) # 从 session_state 加载
     
     # 干扰睡眠因素 - 添加"无"选项并设为默认
     interference_options = ["噪音", "疼痛", "压力", "温度", "光线", "其他", "无"]
     selected_interference = st.multiselect("昨晚干扰睡眠因素（可多选）", 
                                           interference_options, 
-                                          default=["无"])
+                                          default=st.session_state.form_data["selected_interference"]) # 从 session_state 加载
     
     # 如果用户选择了"无"和其他选项，则只保留"无"
     if "无" in selected_interference:
@@ -317,18 +343,18 @@ with st.form("sleep_diary"):
         sleep_interference = ";".join(selected_interference)
     
     st.subheader("夜间睡眠记录")
-    bed_time = st.select_slider("昨晚上床时间", options=evening_slots, value="23:00")
-    try_sleep_time = st.select_slider("闭眼准备入睡时间", options=evening_slots, value="23:05")
+    bed_time = st.select_slider("昨晚上床时间", options=evening_slots, value=st.session_state.form_data["bed_time"]) # 从 session_state 加载
+    try_sleep_time = st.select_slider("闭眼准备入睡时间", options=evening_slots, value=st.session_state.form_data["try_sleep_time"]) # 从 session_state 加载
     
     col3, col4 = st.columns(2)
-    sleep_latency = col3.number_input("入睡所需时间（分钟）", 0, 800, 30)
-    night_awake_count = col4.number_input("夜间觉醒次数", 0, 15, 0)
+    sleep_latency = col3.number_input("入睡所需时间（分钟）", 0, 800, value=st.session_state.form_data["sleep_latency"]) # 从 session_state 加载
+    night_awake_count = col4.number_input("夜间觉醒次数", 0, 15, value=st.session_state.form_data["night_awake_count"]) # 从 session_state 加载
     
-    night_awake_total = st.number_input("夜间觉醒总时长（分钟）", 0, 300, 0)
+    night_awake_total = st.number_input("夜间觉醒总时长（分钟）", 0, 300, value=st.session_state.form_data["night_awake_total"]) # 从 session_state 加载
 
     col5, col6 = st.columns(2)
-    final_wake_time = col5.select_slider("早晨最终醒来时间", options=morning_slots, value="06:30")
-    get_up_time = col6.select_slider("起床时间", options=morning_slots, value="06:35")
+    final_wake_time = col5.select_slider("早晨最终醒来时间", options=morning_slots, value=st.session_state.form_data["final_wake_time"]) # 从 session_state 加载
+    get_up_time = col6.select_slider("起床时间", options=morning_slots, value=st.session_state.form_data["get_up_time"]) # 从 session_state 加载
     
     # 自动计算总睡眠时间（分钟）
     # 总睡眠时间 = (最终醒来时间 - 闭眼准备入睡时间) - 夜间觉醒总时长 - 入睡所需时间
@@ -369,12 +395,12 @@ with st.form("sleep_diary"):
     st.markdown('</div>', unsafe_allow_html=True)
     
     # 睡眠质量自我评价
-    sleep_quality = st.radio("睡眠质量自我评价", ["优", "良", "中", "差", "很差"], horizontal=True, index=2)
+    sleep_quality = st.radio("睡眠质量自我评价", ["优", "良", "中", "差", "很差"], horizontal=True, index=["优", "良", "中", "差", "很差"].index(st.session_state.form_data["sleep_quality"])) # 从 session_state 加载
     
     # 晨起后精神状态 - 改为好、中、差
     morning_feeling_options = ["好", "中", "差"]
     morning_feeling = st.radio("晨起后精神状态", morning_feeling_options, horizontal=True, 
-                              index=1)  # 默认选中"中"
+                              index=["好", "中", "差"].index(st.session_state.form_data["morning_feeling"])) # 从 session_state 加载
     
     # 提交按钮
     submitted = st.form_submit_button("保存日记")
@@ -535,6 +561,31 @@ if submitted:
             loading_placeholder.empty()
             st.success("✅ 日记保存完成！向下滑动可查看近期睡眠情况及AI分析！")
             
+            # 保存成功后，清空 session_state 中的表单数据
+            st.session_state.form_data = {
+                "name": "",
+                "nap_duration": 0,
+                "daytime_bed_minutes": 0,
+                "caffeine": "无",
+                "alcohol": "无",
+                "med_name1": "无",
+                "med_dose1": "0mg",
+                "med_name2": "无",
+                "med_dose2": "0mg",
+                "med_time": "22:00",
+                "daytime_mood": "中",
+                "selected_interference": ["无"],
+                "bed_time": "23:00",
+                "try_sleep_time": "23:05",
+                "sleep_latency": 30,
+                "night_awake_count": 0,
+                "night_awake_total": 0,
+                "final_wake_time": "06:30",
+                "get_up_time": "06:35",
+                "sleep_quality": "中",
+                "morning_feeling": "中"
+            }
+            
             # 展示最近7次汇总图表
             st.subheader("📊 您最近7天的睡眠情况")
             plot_recent_7_days(name)
@@ -566,3 +617,28 @@ if submitted:
                 
         except Exception as e:
             st.error(f"操作失败: {str(e)}")
+else: # 如果没有提交表单，保存当前表单内容到 session_state
+    # 更新 session_state 中的表单数据
+    st.session_state.form_data.update({
+        "name": name,
+        "nap_duration": nap_duration,
+        "daytime_bed_minutes": daytime_bed_minutes,
+        "caffeine": caffeine,
+        "alcohol": alcohol,
+        "med_name1": med_name1,
+        "med_dose1": med_dose1,
+        "med_name2": med_name2,
+        "med_dose2": med_dose2,
+        "med_time": med_time,
+        "daytime_mood": daytime_mood,
+        "selected_interference": selected_interference,
+        "bed_time": bed_time,
+        "try_sleep_time": try_sleep_time,
+        "sleep_latency": sleep_latency,
+        "night_awake_count": night_awake_count,
+        "night_awake_total": night_awake_total,
+        "final_wake_time": final_wake_time,
+        "get_up_time": get_up_time,
+        "sleep_quality": sleep_quality,
+        "morning_feeling": morning_feeling
+    })
