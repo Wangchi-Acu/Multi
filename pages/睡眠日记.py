@@ -519,12 +519,22 @@ if submitted:
     # 检查自检错误
     bed_min = time_to_min(bed_time)
     try_sleep_min = time_to_min(try_sleep_time)
+    final_wake_min = time_to_min(final_wake_time)
+    get_up_min = time_to_min(get_up_time)
     
     errors = []
     if bed_min is None or try_sleep_min is None:
         errors.append("时间格式错误，请检查时间输入。")
     elif bed_min > try_sleep_min:
         errors.append("上床时间不能晚于闭眼准备入睡时间，请重新选择。")
+    
+    # 检查起床时间是否早于最终醒来时间
+    if final_wake_min is not None and get_up_min is not None:
+        if get_up_min < final_wake_min:
+            errors.append("起床时间不能早于早晨最终醒来时间，请重新选择。")
+    elif final_wake_min is not None or get_up_min is not None:
+        errors.append("时间格式错误，请检查早晨最终醒来时间和起床时间的输入。")
+    
     if not name.strip():
         errors.append("请填写姓名后再保存。")
     
