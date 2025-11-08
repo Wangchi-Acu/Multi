@@ -363,7 +363,7 @@ with st.form("sleep_diary"):
     med_dose2 = st.text_input("安眠药物②剂量", placeholder="0mg", value=st.session_state.form_data["med_dose2"]) # 从 session_state 加载
     
     # 安眠药物服用时间 - 改为下拉框选择
-    col_med_time1, col_med_time2 = st.columns([1, 1])  # 设置列宽比例为1:1，使每列宽度为原宽度的一半
+    col_med_time1, col_med_time2 = st.columns([1, 1])  # 设置列宽比例为1:1
     with col_med_time1:
         # 安全获取小时值
         med_time_parts = st.session_state.form_data["med_time"].split(":")
