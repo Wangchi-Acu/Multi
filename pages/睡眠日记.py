@@ -67,12 +67,14 @@ def run_query(sql, params=None):
     conn.close()
     return df
 
-# 时间 → 分钟（跨天）
+# 时间 → 分钟（跨天） - 修复：添加安全检查
 def time_to_min(t):
     try:
+        if pd.isna(t) or t == "无":
+            return None
         h, m = map(int, t.split(":"))
         return (h if h >= 12 else h + 24) * 60 + m
-    except:
+    except (ValueError, AttributeError):
         return None
 
 # 分钟 → 时间字符串
@@ -141,7 +143,7 @@ def plot_recent_7_days(patient_name):
     nap_labels = ["小睡开始时间", "小睡结束时间"]
     data2 = []
     for col, label in zip(nap_cols, nap_labels):
-        mins = df[col].apply(lambda t: int(t.split(":")[0]) * 60 + int(t.split(":")[1]))
+        mins = df[col].apply(lambda t: int(t.split(":")[0]) * 60 + int(t.split(":")[1]) if pd.notna(t) and t != "无" and t != "" else None)
         data2.append(go.Scatter(x=df["date_fmt"], y=mins, name=label,
                                 mode="lines+markers+text", text=df[col],
                                 textposition="top center"))
@@ -463,26 +465,32 @@ with st.form("sleep_diary"):
     final_wake_min = time_to_min(final_wake_time)
     
     # 计算闭眼准备入睡到最终醒来的总时长（考虑跨天）
-    if final_wake_min >= try_sleep_min:
-        sleep_duration_min = final_wake_min - try_sleep_min
+    if final_wake_min is not None and try_sleep_min is not None:
+        if final_wake_min >= try_sleep_min:
+            sleep_duration_min = final_wake_min - try_sleep_min
+        else:
+            sleep_duration_min = (24 * 60) - try_sleep_min + final_wake_min
+        total_sleep_minutes = max(0, sleep_duration_min - night_awake_total - sleep_latency)
+        total_sleep_hours = total_sleep_minutes / 60.0
     else:
-        sleep_duration_min = (24 * 60) - try_sleep_min + final_wake_min
-    
-    total_sleep_minutes = max(0, sleep_duration_min - night_awake_total - sleep_latency)
-    total_sleep_hours = total_sleep_minutes / 60.0
+        total_sleep_minutes = 0
+        total_sleep_hours = 0.0
     
     # 自动计算睡眠效率（%）
     # 睡眠效率 = 总睡眠时间 / (起床时间 - 上床时间)
     bed_min = time_to_min(bed_time)
     get_up_min = time_to_min(get_up_time)
     
-    if get_up_min >= bed_min:
-        time_in_bed_min = get_up_min - bed_min
-    else:
-        time_in_bed_min = (24 * 60) - bed_min + get_up_min
-    
-    if time_in_bed_min > 0:
-        sleep_efficiency = (total_sleep_minutes / time_in_bed_min) * 100
+    if bed_min is not None and get_up_min is not None:
+        if get_up_min >= bed_min:
+            time_in_bed_min = get_up_min - bed_min
+        else:
+            time_in_bed_min = (24 * 60) - bed_min + get_up_min
+        
+        if time_in_bed_min > 0:
+            sleep_efficiency = (total_sleep_minutes / time_in_bed_min) * 100
+        else:
+            sleep_efficiency = 0.0
     else:
         sleep_efficiency = 0.0
     
@@ -513,7 +521,9 @@ if submitted:
     try_sleep_min = time_to_min(try_sleep_time)
     
     errors = []
-    if bed_min > try_sleep_min:
+    if bed_min is None or try_sleep_min is None:
+        errors.append("时间格式错误，请检查时间输入。")
+    elif bed_min > try_sleep_min:
         errors.append("上床时间不能晚于闭眼准备入睡时间，请重新选择。")
     if not name.strip():
         errors.append("请填写姓名后再保存。")
