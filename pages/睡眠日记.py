@@ -115,6 +115,7 @@ def plot_recent_7_days(patient_name):
         st.warning("暂无记录")
         return
 
+    # 将日期格式化为“月-日”
     df["date_fmt"] = pd.to_datetime(df["record_date"]).dt.strftime("%m-%d")
 
     # 1. 夜间关键时间
@@ -169,7 +170,83 @@ def plot_recent_7_days(patient_name):
         fig = px.line(df, x="date_fmt", y=col, markers=True, title=title)
         st.plotly_chart(fig, use_container_width=True)
 
-    st.dataframe(df.reset_index(drop=True))
+    # 显示数据框（使用中文列名）
+    df_display = df.copy()
+    
+    # 中文列名映射
+    chinese_column_names = {
+        "name": "姓名",
+        "record_date": "记录日期",
+        "entry_date": "填写日期",
+        "nap_start": "日间小睡开始时间",
+        "nap_end": "日间小睡结束时间",
+        "daytime_bed_minutes": "日间卧床时间（分钟）",
+        "nap_duration": "昨日白天小睡总时长（分钟）",
+        "caffeine": "咖啡因摄入",
+        "alcohol": "酒精摄入",
+        "med_name": "药物名称",
+        "med_dose": "药物剂量",
+        "med_time": "服药时间",
+        "daytime_mood": "日间情绪状态",
+        "sleep_interference": "睡眠干扰因素",
+        "bed_time": "上床时间",
+        "try_sleep_time": "闭眼准备入睡时间",
+        "sleep_latency": "入睡所需时间（分钟）",
+        "night_awake_count": "夜间觉醒次数",
+        "night_awake_total": "夜间觉醒总时长（分钟）",
+        "final_wake_time": "早晨最终醒来时间",
+        "get_up_time": "起床时间",
+        "total_sleep_hours": "总睡眠时长（小时）",
+        "sleep_efficiency": "睡眠效率（%）",
+        "sleep_quality": "睡眠质量自我评价",
+        "morning_feeling": "晨起后精神状态",
+        "created_at": "创建时间",
+        "date_fmt": "日期"
+    }
+    
+    # 重命名列
+    df_display.rename(columns=chinese_column_names, inplace=True)
+    
+    # 重新排列列的顺序，将重要的信息放在前面
+    important_cols = [
+        "姓名",
+        "记录日期",
+        "填写日期",
+        "上床时间",
+        "闭眼准备入睡时间",
+        "入睡所需时间（分钟）",
+        "夜间觉醒次数",
+        "夜间觉醒总时长（分钟）",
+        "早晨最终醒来时间",
+        "起床时间",
+        "总睡眠时长（小时）",
+        "睡眠效率（%）",
+        "睡眠质量自我评价",
+        "晨起后精神状态",
+        "日间小睡开始时间",
+        "日间小睡结束时间",
+        "日间卧床时间（分钟）",
+        "昨日白天小睡总时长（分钟）",
+        "日间情绪状态",
+        "睡眠干扰因素",
+        "咖啡因摄入",
+        "酒精摄入",
+        "药物名称",
+        "药物剂量",
+        "服药时间",
+        "创建时间",
+        "日期"
+    ]
+    
+    # 只保留存在的列
+    existing_cols = [col for col in important_cols if col in df_display.columns]
+    # 添加其他可能的列
+    other_cols = [col for col in df_display.columns if col not in existing_cols]
+    final_cols = existing_cols + other_cols
+    
+    df_display = df_display[final_cols]
+    
+    st.dataframe(df_display.reset_index(drop=True))
 
 # AI分析函数 - 修改为提供所有数据但保护隐私
 def analyze_sleep_data_with_ai(patient_name):
