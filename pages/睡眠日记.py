@@ -1,7 +1,8 @@
 import streamlit as st
 import pymysql
 import os
-from datetime import date, timedelta
+from datetime import datetime, timedelta # 修改：导入 datetime
+import pytz # 新增：导入 pytz 库用于时区处理
 import time
 import pandas as pd
 import plotly.express as px
@@ -105,7 +106,7 @@ def plot_recent_7_days(patient_name):
             autorange=True,
             showticklabels=False
         ),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5)
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5)
     )
     st.plotly_chart(fig1, use_container_width=True)
 
@@ -126,7 +127,7 @@ def plot_recent_7_days(patient_name):
             autorange=True,
             showticklabels=False
         ),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5)
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, x=1.02, xanchor="left")
     )
     st.plotly_chart(fig2, use_container_width=True)
 
@@ -236,9 +237,11 @@ daytime_slots = generate_time_slots(6, 20)  # 白天时间：06:00-20:00
 evening_slots = generate_time_slots(20, 26)  # 晚上时间：20:00-02:00（26=02:00+24）
 morning_slots = generate_time_slots(2, 12)   # 早晨时间：02:00-12:00
 
-# 日期处理
-today = date.today()
-yesterday = today - timedelta(days=1)
+# 日期处理 - 修改：使用北京时间
+beijing_tz = pytz.timezone('Asia/Shanghai') # 定义北京时间时区
+now_beijing = datetime.now(beijing_tz)      # 获取当前北京时间
+today = now_beijing.date()                  # 提取日期部分
+yesterday = today - timedelta(days=1)       # 计算昨天日期
 
 # 创建表单
 with st.form("sleep_diary"):
