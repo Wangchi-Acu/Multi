@@ -216,13 +216,4 @@ if submitted:
     st.metric("🎯 PSQI 总分", f"{res['total']} 分")
     st.info(f"综合评定：睡眠质量 **{level}**")
 
-    # 防刷新下载
-    csv_bytes = pd.DataFrame([record]).to_csv(index=False).encode("utf-8-sig")
-    st.download_button(
-        label="📥 下载结果 CSV",
-        data=csv_bytes,
-        file_name=os.path.basename(path),
-        mime="text/csv",
-        key="download_single_psqi"
-    )
     st.success("PSQI 提交成功！")
