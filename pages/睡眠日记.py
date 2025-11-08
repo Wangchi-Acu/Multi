@@ -92,8 +92,8 @@ def generate_time_slots(start_hour, end_hour):
             slots.append(f"{hour:02d}:{m:02d}")
     return slots
 
-# 绘图函数 - 最近7次汇总图表
-def plot_recent_7_days(patient_name):
+# 绘图函数 - 所有次汇总图表
+def plot_all_days(patient_name):
     df = run_query(
         """
         SELECT t1.* 
@@ -103,8 +103,6 @@ def plot_recent_7_days(patient_name):
             FROM sleep_diary
             WHERE name = %s
             GROUP BY record_date
-            ORDER BY record_date DESC
-            LIMIT 7
         ) t2 
         ON t1.record_date = t2.record_date AND t1.created_at = t2.max_created_at
         ORDER BY t1.record_date ASC
@@ -168,6 +166,7 @@ def plot_recent_7_days(patient_name):
                ("sleep_efficiency", "睡眠效率（%）")]
     for col, title in metrics:
         fig = px.line(df, x="date_fmt", y=col, markers=True, title=title)
+        fig.update_layout(xaxis_title="填写日期", yaxis_title=title)
         st.plotly_chart(fig, use_container_width=True)
 
     # 显示数据框（使用中文列名）
@@ -784,9 +783,9 @@ if submitted:
                 "morning_feeling": "中"
             }
             
-            # 展示最近7次汇总图表
-            st.subheader("📊 您最近7天的睡眠情况")
-            plot_recent_7_days(name)
+            # 展示所有次汇总图表
+            st.subheader("📊 您所有次的睡眠情况")
+            plot_all_days(name)
             
             # AI分析和建议
             st.subheader("🤖 AI睡眠分析与建议")
