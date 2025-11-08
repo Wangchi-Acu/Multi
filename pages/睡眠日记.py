@@ -259,9 +259,17 @@ with st.form("sleep_diary"):
         st.markdown('</div>', unsafe_allow_html=True)
     
     st.subheader("日间活动记录")
-    col1, col2 = st.columns(2)
-    nap_start = col1.select_slider("昨日白天小睡开始时间", options=daytime_slots, value="14:00")
-    nap_end = col2.select_slider("昨日白天小睡结束时间", options=daytime_slots, value="14:05")
+    # 添加“昨日是否有日间小睡”选择器
+    has_nap = st.radio("昨日是否有日间小睡", ["有", "无"], horizontal=True)
+    
+    # 根据选择显示小睡时间输入
+    if has_nap == "有":
+        col1, col2 = st.columns(2)
+        nap_start = col1.select_slider("昨日白天小睡开始时间", options=daytime_slots, value="14:00")
+        nap_end = col2.select_slider("昨日白天小睡结束时间", options=daytime_slots, value="14:05")
+    else:
+        nap_start = "无"
+        nap_end = "无"
     
     # 添加日间卧床时间（单位：分钟）
     daytime_bed_minutes = st.number_input(
@@ -276,11 +284,22 @@ with st.form("sleep_diary"):
     caffeine = st.text_input("昨日咖啡因摄入（例：咖啡，8:00/2杯）", value="无")
     alcohol = st.text_input("昨日酒精摄入（例：啤酒，19:00/1瓶）", value="无")
     
-    st.subheader("药物使用")
-    med_col1, med_col2, med_col3 = st.columns(3)
-    med_name = med_col1.text_input("药物名称", placeholder="无")
-    med_dose = med_col2.text_input("剂量", placeholder="0mg")
-    med_time = med_col3.select_slider("服用时间", options=evening_slots, value="22:00")
+    st.subheader("安眠药物使用")
+    # 安眠药物①
+    med_col1, med_col2 = st.columns(2)
+    med_name1 = med_col1.text_input("安眠药物①名称", placeholder="无")
+    med_dose1 = med_col2.text_input("安眠药物①剂量", placeholder="0mg")
+    
+    # 安眠药物②
+    med_col3, med_col4 = st.columns(2)
+    med_name2 = med_col3.text_input("安眠药物②名称", placeholder="无")
+    med_dose2 = med_col4.text_input("安眠药物②剂量", placeholder="0mg")
+    
+    # 根据药物名称决定是否显示时间选择器
+    if (med_name1 != "无" and med_name1.strip() != "") or (med_name2 != "无" and med_name2.strip() != ""):
+        med_time = st.select_slider("安眠药物服用时间", options=evening_slots, value="22:00")
+    else:
+        med_time = "无"
     
     # 日间情绪状态
     daytime_mood = st.radio("昨日日间情绪状态", ["优", "良", "中", "差", "很差"], horizontal=True, index=2)
@@ -365,189 +384,374 @@ with st.form("sleep_diary"):
 # 数据库连接和保存逻辑
 if submitted:
     # 检查自检错误
-    nap_start_min = time_to_min(nap_start)
-    nap_end_min = time_to_min(nap_end)
-    bed_min = time_to_min(bed_time)
-    try_sleep_min = time_to_min(try_sleep_time)
-    
-    errors = []
-    if nap_start_min > nap_end_min:
-        errors.append("小睡开始时间不能晚于小睡结束时间，请重新选择。")
-    if bed_min > try_sleep_min:
-        errors.append("上床时间不能晚于闭眼准备入睡时间，请重新选择。")
-    if not name.strip():
-        errors.append("请填写姓名后再保存。")
-    
-    if errors:
-        # 显示醒目错误信息
-        error_html = """
-        <div style="
-            background-color: #f8d7da;
-            border: 2px solid #f5c6cb;
-            border-radius: 10px;
-            padding: 20px;
-            text-align: center;
-            margin: 20px 0;
-        ">
-            <h3 style="color: #721c24; margin: 0;">⚠️ 发现错误</h3>
-            <p style="font-size: 18px; color: #721c24; margin: 10px 0 0 0;">
-        """
-        for error in errors:
-            error_html += f"<strong>{error}</strong><br>"
-        error_html += "</p></div>"
-        st.markdown(error_html, unsafe_allow_html=True)
-    else:
-        try:
-            # 构建记录数据
-            record = {
-                "name": name,
-                "record_date": record_date.isoformat(),  # 睡眠日期
-                "entry_date": entry_date.isoformat(),    # 填写日期
-                "nap_start": nap_start,
-                "nap_end": nap_end,
-                "daytime_bed_minutes": daytime_bed_minutes,  # 新增的日间卧床时间
-                "caffeine": caffeine,
-                "alcohol": alcohol,
-                "med_name": med_name,
-                "med_dose": med_dose,
-                "med_time": med_time,
-                "daytime_mood": daytime_mood,
-                "sleep_interference": sleep_interference,
-                "bed_time": bed_time,
-                "try_sleep_time": try_sleep_time,  # 闭眼准备入睡时间
-                "sleep_latency": sleep_latency,
-                "night_awake_count": night_awake_count,
-                "night_awake_total": night_awake_total,
-                "final_wake_time": final_wake_time,
-                "get_up_time": get_up_time,
-                "total_sleep_hours": total_sleep_hours,
-                "sleep_efficiency": sleep_efficiency,
-                "sleep_quality": sleep_quality,
-                "morning_feeling": morning_feeling
-            }
-
-            # 显示更醒目的加载提示
-            loading_placeholder = st.empty()
-            loading_placeholder.markdown("""
-                <div style="
-                    background-color: #fff3cd;
-                    border: 2px solid #ffc107;
-                    border-radius: 10px;
-                    padding: 20px;
-                    text-align: center;
-                    margin: 20px 0;
-                ">
-                    <h2 style="color: #856404; margin: 0;">⏳ 日记正在保存</h2>
-                    <p style="font-size: 18px; color: #856404; margin: 10px 0 0 0;">
-                        <strong>请勿离开页面，正在处理中...</strong>
-                    </p>
-                </div>
-            """, unsafe_allow_html=True)
-            
-            # 连接数据库
-            conn = pymysql.connect(
-                host=os.getenv("SQLPUB_HOST"),
-                port=int(os.getenv("SQLPUB_PORT", 3307)),
-                user=os.getenv("SQLPUB_USER"),
-                password=os.getenv("SQLPUB_PWD"),
-                database=os.getenv("SQLPUB_DB"),
-                charset="utf8mb4"
-            )
-            
-            with conn.cursor() as cursor:
-                # 检查是否已存在该用户同一天的记录
-                check_sql = """
-                SELECT COUNT(*) FROM sleep_diary 
-                WHERE name = %(name)s AND record_date = %(record_date)s
-                """
-                cursor.execute(check_sql, {"name": name, "record_date": record_date.isoformat()})
-                exists = cursor.fetchone()[0] > 0
-                
-                if exists:
-                    # 更新现有记录
-                    update_sql = """
-                    UPDATE sleep_diary
-                    SET entry_date = %(entry_date)s,
-                        nap_start = %(nap_start)s,
-                        nap_end = %(nap_end)s,
-                        daytime_bed_minutes = %(daytime_bed_minutes)s,
-                        caffeine = %(caffeine)s,
-                        alcohol = %(alcohol)s,
-                        med_name = %(med_name)s,
-                        med_dose = %(med_dose)s,
-                        med_time = %(med_time)s,
-                        daytime_mood = %(daytime_mood)s,
-                        sleep_interference = %(sleep_interference)s,
-                        bed_time = %(bed_time)s,
-                        try_sleep_time = %(try_sleep_time)s,
-                        sleep_latency = %(sleep_latency)s,
-                        night_awake_count = %(night_awake_count)s,
-                        night_awake_total = %(night_awake_total)s,
-                        final_wake_time = %(final_wake_time)s,
-                        get_up_time = %(get_up_time)s,
-                        total_sleep_hours = %(total_sleep_hours)s,
-                        sleep_efficiency = %(sleep_efficiency)s,
-                        sleep_quality = %(sleep_quality)s,
-                        morning_feeling = %(morning_feeling)s
-                    WHERE name = %(name)s AND record_date = %(record_date)s
-                    """
-                    cursor.execute(update_sql, record)
-                    action = "更新"
-                else:
-                    # 插入新记录
-                    insert_sql = """
-                    INSERT INTO sleep_diary
-                    (name, record_date, entry_date, nap_start, nap_end, daytime_bed_minutes, caffeine, alcohol, 
-                     med_name, med_dose, med_time, daytime_mood, sleep_interference, 
-                     bed_time, try_sleep_time, sleep_latency, night_awake_count, 
-                     night_awake_total, final_wake_time, get_up_time, total_sleep_hours,
-                     sleep_efficiency, sleep_quality, morning_feeling)
-                    VALUES
-                    (%(name)s, %(record_date)s, %(entry_date)s, %(nap_start)s, %(nap_end)s, 
-                     %(daytime_bed_minutes)s, %(caffeine)s, %(alcohol)s, %(med_name)s, %(med_dose)s, %(med_time)s, 
-                     %(daytime_mood)s, %(sleep_interference)s, %(bed_time)s, %(try_sleep_time)s, 
-                     %(sleep_latency)s, %(night_awake_count)s, %(night_awake_total)s, 
-                     %(final_wake_time)s, %(get_up_time)s, %(total_sleep_hours)s, 
-                     %(sleep_efficiency)s, %(sleep_quality)s, %(morning_feeling)s)
-                    """
-                    cursor.execute(insert_sql, record)
-                    action = "保存"
-            
-            conn.commit()
-            conn.close()
-            
-            # 清除加载提示并显示成功消息
-            loading_placeholder.empty()
-            st.success("✅ 日记保存完成！向下滑动可查看近期睡眠情况及AI分析！")
-            
-            # 展示最近7次汇总图表
-            st.subheader("📊 您最近7天的睡眠情况")
-            plot_recent_7_days(name)
-            
-            # AI分析和建议
-            st.subheader("🤖 AI睡眠分析与建议")
-            
-            # 获取所有数据用于AI分析（已保护隐私）
-            ai_analysis_placeholder = st.empty()
-            ai_analysis_placeholder.info("正在为您生成个性化的睡眠分析和建议...")
-            
+    if has_nap == "有":
+        nap_start_min = time_to_min(nap_start)
+        nap_end_min = time_to_min(nap_end)
+        bed_min = time_to_min(bed_time)
+        try_sleep_min = time_to_min(try_sleep_time)
+        
+        errors = []
+        if nap_start_min > nap_end_min:
+            errors.append("小睡开始时间不能晚于小睡结束时间，请重新选择。")
+        if bed_min > try_sleep_min:
+            errors.append("上床时间不能晚于闭眼准备入睡时间，请重新选择。")
+        if not name.strip():
+            errors.append("请填写姓名后再保存。")
+        
+        if errors:
+            # 显示醒目错误信息
+            error_html = """
+            <div style="
+                background-color: #f8d7da;
+                border: 2px solid #f5c6cb;
+                border-radius: 10px;
+                padding: 20px;
+                text-align: center;
+                margin: 20px 0;
+            ">
+                <h3 style="color: #721c24; margin: 0;">⚠️ 发现错误</h3>
+                <p style="font-size: 18px; color: #721c24; margin: 10px 0 0 0;">
+            """
+            for error in errors:
+                error_html += f"<strong>{error}</strong><br>"
+            error_html += "</p></div>"
+            st.markdown(error_html, unsafe_allow_html=True)
+        else:
             try:
-                ai_analysis_result = analyze_sleep_data_with_ai(name)
-                ai_analysis_placeholder.empty()  # 清除加载提示
-                st.markdown(f"""
+                # 构建记录数据
+                record = {
+                    "name": name,
+                    "record_date": record_date.isoformat(),  # 睡眠日期
+                    "entry_date": entry_date.isoformat(),    # 填写日期
+                    "nap_start": nap_start,
+                    "nap_end": nap_end,
+                    "daytime_bed_minutes": daytime_bed_minutes,  # 新增的日间卧床时间
+                    "caffeine": caffeine,
+                    "alcohol": alcohol,
+                    "med_name": f"{med_name1};{med_name2}",  # 合并两个药物名称
+                    "med_dose": f"{med_dose1};{med_dose2}",  # 合并两个药物剂量
+                    "med_time": med_time,
+                    "daytime_mood": daytime_mood,
+                    "sleep_interference": sleep_interference,
+                    "bed_time": bed_time,
+                    "try_sleep_time": try_sleep_time,  # 闭眼准备入睡时间
+                    "sleep_latency": sleep_latency,
+                    "night_awake_count": night_awake_count,
+                    "night_awake_total": night_awake_total,
+                    "final_wake_time": final_wake_time,
+                    "get_up_time": get_up_time,
+                    "total_sleep_hours": total_sleep_hours,
+                    "sleep_efficiency": sleep_efficiency,
+                    "sleep_quality": sleep_quality,
+                    "morning_feeling": morning_feeling
+                }
+
+                # 显示更醒目的加载提示
+                loading_placeholder = st.empty()
+                loading_placeholder.markdown("""
                     <div style="
-                        background-color: #f8f9fa;
-                        border-left: 4px solid #007bff;
+                        background-color: #fff3cd;
+                        border: 2px solid #ffc107;
+                        border-radius: 10px;
                         padding: 20px;
-                        border-radius: 5px;
+                        text-align: center;
                         margin: 20px 0;
                     ">
-                        <h4>📋 个性化睡眠分析报告</h4>
-                        <div style="line-height: 1.6;">{ai_analysis_result}</div>
+                        <h2 style="color: #856404; margin: 0;">⏳ 日记正在保存</h2>
+                        <p style="font-size: 18px; color: #856404; margin: 10px 0 0 0;">
+                            <strong>请勿离开页面，正在处理中...</strong>
+                        </p>
                     </div>
                 """, unsafe_allow_html=True)
-            except Exception as e:
-                ai_analysis_placeholder.error(f"AI分析失败：{str(e)}")
                 
-        except Exception as e:
-            st.error(f"操作失败: {str(e)}")
+                # 连接数据库
+                conn = pymysql.connect(
+                    host=os.getenv("SQLPUB_HOST"),
+                    port=int(os.getenv("SQLPUB_PORT", 3307)),
+                    user=os.getenv("SQLPUB_USER"),
+                    password=os.getenv("SQLPUB_PWD"),
+                    database=os.getenv("SQLPUB_DB"),
+                    charset="utf8mb4"
+                )
+                
+                with conn.cursor() as cursor:
+                    # 检查是否已存在该用户同一天的记录
+                    check_sql = """
+                    SELECT COUNT(*) FROM sleep_diary 
+                    WHERE name = %(name)s AND record_date = %(record_date)s
+                    """
+                    cursor.execute(check_sql, {"name": name, "record_date": record_date.isoformat()})
+                    exists = cursor.fetchone()[0] > 0
+                    
+                    if exists:
+                        # 更新现有记录
+                        update_sql = """
+                        UPDATE sleep_diary
+                        SET entry_date = %(entry_date)s,
+                            nap_start = %(nap_start)s,
+                            nap_end = %(nap_end)s,
+                            daytime_bed_minutes = %(daytime_bed_minutes)s,
+                            caffeine = %(caffeine)s,
+                            alcohol = %(alcohol)s,
+                            med_name = %(med_name)s,
+                            med_dose = %(med_dose)s,
+                            med_time = %(med_time)s,
+                            daytime_mood = %(daytime_mood)s,
+                            sleep_interference = %(sleep_interference)s,
+                            bed_time = %(bed_time)s,
+                            try_sleep_time = %(try_sleep_time)s,
+                            sleep_latency = %(sleep_latency)s,
+                            night_awake_count = %(night_awake_count)s,
+                            night_awake_total = %(night_awake_total)s,
+                            final_wake_time = %(final_wake_time)s,
+                            get_up_time = %(get_up_time)s,
+                            total_sleep_hours = %(total_sleep_hours)s,
+                            sleep_efficiency = %(sleep_efficiency)s,
+                            sleep_quality = %(sleep_quality)s,
+                            morning_feeling = %(morning_feeling)s
+                        WHERE name = %(name)s AND record_date = %(record_date)s
+                        """
+                        cursor.execute(update_sql, record)
+                        action = "更新"
+                    else:
+                        # 插入新记录
+                        insert_sql = """
+                        INSERT INTO sleep_diary
+                        (name, record_date, entry_date, nap_start, nap_end, daytime_bed_minutes, caffeine, alcohol, 
+                         med_name, med_dose, med_time, daytime_mood, sleep_interference, 
+                         bed_time, try_sleep_time, sleep_latency, night_awake_count, 
+                         night_awake_total, final_wake_time, get_up_time, total_sleep_hours,
+                         sleep_efficiency, sleep_quality, morning_feeling)
+                        VALUES
+                        (%(name)s, %(record_date)s, %(entry_date)s, %(nap_start)s, %(nap_end)s, 
+                         %(daytime_bed_minutes)s, %(caffeine)s, %(alcohol)s, %(med_name)s, %(med_dose)s, %(med_time)s, 
+                         %(daytime_mood)s, %(sleep_interference)s, %(bed_time)s, %(try_sleep_time)s, 
+                         %(sleep_latency)s, %(night_awake_count)s, %(night_awake_total)s, 
+                         %(final_wake_time)s, %(get_up_time)s, %(total_sleep_hours)s, 
+                         %(sleep_efficiency)s, %(sleep_quality)s, %(morning_feeling)s)
+                        """
+                        cursor.execute(insert_sql, record)
+                        action = "保存"
+                
+                conn.commit()
+                conn.close()
+                
+                # 清除加载提示并显示成功消息
+                loading_placeholder.empty()
+                st.success("✅ 日记保存完成！向下滑动可查看近期睡眠情况及AI分析！")
+                
+                # 展示最近7次汇总图表
+                st.subheader("📊 您最近7天的睡眠情况")
+                plot_recent_7_days(name)
+                
+                # AI分析和建议
+                st.subheader("🤖 AI睡眠分析与建议")
+                
+                # 获取所有数据用于AI分析（已保护隐私）
+                ai_analysis_placeholder = st.empty()
+                ai_analysis_placeholder.info("正在为您生成个性化的睡眠分析和建议...")
+                
+                try:
+                    ai_analysis_result = analyze_sleep_data_with_ai(name)
+                    ai_analysis_placeholder.empty()  # 清除加载提示
+                    st.markdown(f"""
+                        <div style="
+                            background-color: #f8f9fa;
+                            border-left: 4px solid #007bff;
+                            padding: 20px;
+                            border-radius: 5px;
+                            margin: 20px 0;
+                        ">
+                            <h4>📋 个性化睡眠分析报告</h4>
+                            <div style="line-height: 1.6;">{ai_analysis_result}</div>
+                        </div>
+                    """, unsafe_allow_html=True)
+                except Exception as e:
+                    ai_analysis_placeholder.error(f"AI分析失败：{str(e)}")
+                    
+            except Exception as e:
+                st.error(f"操作失败: {str(e)}")
+    else:  # has_nap == "无"
+        # 检查其他错误
+        bed_min = time_to_min(bed_time)
+        try_sleep_min = time_to_min(try_sleep_time)
+        
+        errors = []
+        if bed_min > try_sleep_min:
+            errors.append("上床时间不能晚于闭眼准备入睡时间，请重新选择。")
+        if not name.strip():
+            errors.append("请填写姓名后再保存。")
+        
+        if errors:
+            # 显示醒目错误信息
+            error_html = """
+            <div style="
+                background-color: #f8d7da;
+                border: 2px solid #f5c6cb;
+                border-radius: 10px;
+                padding: 20px;
+                text-align: center;
+                margin: 20px 0;
+            ">
+                <h3 style="color: #721c24; margin: 0;">⚠️ 发现错误</h3>
+                <p style="font-size: 18px; color: #721c24; margin: 10px 0 0 0;">
+            """
+            for error in errors:
+                error_html += f"<strong>{error}</strong><br>"
+            error_html += "</p></div>"
+            st.markdown(error_html, unsafe_allow_html=True)
+        else:
+            try:
+                # 构建记录数据
+                record = {
+                    "name": name,
+                    "record_date": record_date.isoformat(),  # 睡眠日期
+                    "entry_date": entry_date.isoformat(),    # 填写日期
+                    "nap_start": nap_start,
+                    "nap_end": nap_end,
+                    "daytime_bed_minutes": daytime_bed_minutes,  # 新增的日间卧床时间
+                    "caffeine": caffeine,
+                    "alcohol": alcohol,
+                    "med_name": f"{med_name1};{med_name2}",  # 合并两个药物名称
+                    "med_dose": f"{med_dose1};{med_dose2}",  # 合并两个药物剂量
+                    "med_time": med_time,
+                    "daytime_mood": daytime_mood,
+                    "sleep_interference": sleep_interference,
+                    "bed_time": bed_time,
+                    "try_sleep_time": try_sleep_time,  # 闭眼准备入睡时间
+                    "sleep_latency": sleep_latency,
+                    "night_awake_count": night_awake_count,
+                    "night_awake_total": night_awake_total,
+                    "final_wake_time": final_wake_time,
+                    "get_up_time": get_up_time,
+                    "total_sleep_hours": total_sleep_hours,
+                    "sleep_efficiency": sleep_efficiency,
+                    "sleep_quality": sleep_quality,
+                    "morning_feeling": morning_feeling
+                }
+
+                # 显示更醒目的加载提示
+                loading_placeholder = st.empty()
+                loading_placeholder.markdown("""
+                    <div style="
+                        background-color: #fff3cd;
+                        border: 2px solid #ffc107;
+                        border-radius: 10px;
+                        padding: 20px;
+                        text-align: center;
+                        margin: 20px 0;
+                    ">
+                        <h2 style="color: #856404; margin: 0;">⏳ 日记正在保存</h2>
+                        <p style="font-size: 18px; color: #856404; margin: 10px 0 0 0;">
+                            <strong>请勿离开页面，正在处理中...</strong>
+                        </p>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                # 连接数据库
+                conn = pymysql.connect(
+                    host=os.getenv("SQLPUB_HOST"),
+                    port=int(os.getenv("SQLPUB_PORT", 3307)),
+                    user=os.getenv("SQLPUB_USER"),
+                    password=os.getenv("SQLPUB_PWD"),
+                    database=os.getenv("SQLPUB_DB"),
+                    charset="utf8mb4"
+                )
+                
+                with conn.cursor() as cursor:
+                    # 检查是否已存在该用户同一天的记录
+                    check_sql = """
+                    SELECT COUNT(*) FROM sleep_diary 
+                    WHERE name = %(name)s AND record_date = %(record_date)s
+                    """
+                    cursor.execute(check_sql, {"name": name, "record_date": record_date.isoformat()})
+                    exists = cursor.fetchone()[0] > 0
+                    
+                    if exists:
+                        # 更新现有记录
+                        update_sql = """
+                        UPDATE sleep_diary
+                        SET entry_date = %(entry_date)s,
+                            nap_start = %(nap_start)s,
+                            nap_end = %(nap_end)s,
+                            daytime_bed_minutes = %(daytime_bed_minutes)s,
+                            caffeine = %(caffeine)s,
+                            alcohol = %(alcohol)s,
+                            med_name = %(med_name)s,
+                            med_dose = %(med_dose)s,
+                            med_time = %(med_time)s,
+                            daytime_mood = %(daytime_mood)s,
+                            sleep_interference = %(sleep_interference)s,
+                            bed_time = %(bed_time)s,
+                            try_sleep_time = %(try_sleep_time)s,
+                            sleep_latency = %(sleep_latency)s,
+                            night_awake_count = %(night_awake_count)s,
+                            night_awake_total = %(night_awake_total)s,
+                            final_wake_time = %(final_wake_time)s,
+                            get_up_time = %(get_up_time)s,
+                            total_sleep_hours = %(total_sleep_hours)s,
+                            sleep_efficiency = %(sleep_efficiency)s,
+                            sleep_quality = %(sleep_quality)s,
+                            morning_feeling = %(morning_feeling)s
+                        WHERE name = %(name)s AND record_date = %(record_date)s
+                        """
+                        cursor.execute(update_sql, record)
+                        action = "更新"
+                    else:
+                        # 插入新记录
+                        insert_sql = """
+                        INSERT INTO sleep_diary
+                        (name, record_date, entry_date, nap_start, nap_end, daytime_bed_minutes, caffeine, alcohol, 
+                         med_name, med_dose, med_time, daytime_mood, sleep_interference, 
+                         bed_time, try_sleep_time, sleep_latency, night_awake_count, 
+                         night_awake_total, final_wake_time, get_up_time, total_sleep_hours,
+                         sleep_efficiency, sleep_quality, morning_feeling)
+                        VALUES
+                        (%(name)s, %(record_date)s, %(entry_date)s, %(nap_start)s, %(nap_end)s, 
+                         %(daytime_bed_minutes)s, %(caffeine)s, %(alcohol)s, %(med_name)s, %(med_dose)s, %(med_time)s, 
+                         %(daytime_mood)s, %(sleep_interference)s, %(bed_time)s, %(try_sleep_time)s, 
+                         %(sleep_latency)s, %(night_awake_count)s, %(night_awake_total)s, 
+                         %(final_wake_time)s, %(get_up_time)s, %(total_sleep_hours)s, 
+                         %(sleep_efficiency)s, %(sleep_quality)s, %(morning_feeling)s)
+                        """
+                        cursor.execute(insert_sql, record)
+                        action = "保存"
+                
+                conn.commit()
+                conn.close()
+                
+                # 清除加载提示并显示成功消息
+                loading_placeholder.empty()
+                st.success("✅ 日记保存完成！向下滑动可查看近期睡眠情况及AI分析！")
+                
+                # 展示最近7次汇总图表
+                st.subheader("📊 您最近7天的睡眠情况")
+                plot_recent_7_days(name)
+                
+                # AI分析和建议
+                st.subheader("🤖 AI睡眠分析与建议")
+                
+                # 获取所有数据用于AI分析（已保护隐私）
+                ai_analysis_placeholder = st.empty()
+                ai_analysis_placeholder.info("正在为您生成个性化的睡眠分析和建议...")
+                
+                try:
+                    ai_analysis_result = analyze_sleep_data_with_ai(name)
+                    ai_analysis_placeholder.empty()  # 清除加载提示
+                    st.markdown(f"""
+                        <div style="
+                            background-color: #f8f9fa;
+                            border-left: 4px solid #007bff;
+                            padding: 20px;
+                            border-radius: 5px;
+                            margin: 20px 0;
+                        ">
+                            <h4>📋 个性化睡眠分析报告</h4>
+                            <div style="line-height: 1.6;">{ai_analysis_result}</div>
+                        </div>
+                    """, unsafe_allow_html=True)
+                except Exception as e:
+                    ai_analysis_placeholder.error(f"AI分析失败：{str(e)}")
+                    
+            except Exception as e:
+                st.error(f"操作失败: {str(e)}")
