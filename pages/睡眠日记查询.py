@@ -14,7 +14,7 @@ pwd = st.text_input("查询密码", type="password")
 if pwd.strip() != "10338":
     st.stop()
 
-tab1, tab2, tab3 = st.tabs(["🔍 单次查询", "📈 最近7次汇总", "📅 按日期查询"])
+tab1, tab2, tab3, tab4 = st.tabs(["🔍 单次查询", "📈 最近7次汇总", "📅 按日期查询", "🗓️ 日期区间查询"])
 
 def run_query(sql, params=None):
     conn = pymysql.connect(
@@ -391,3 +391,91 @@ with tab3:
                 file_name=f"按日期查询_{query_date}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
+
+# ---------- 日期区间查询 ----------
+with tab4:
+    col1, col2 = st.columns(2)
+    with col1:
+        start_date = st.date_input("开始日期", date.today() - pd.Timedelta(days=7))
+    with col2:
+        end_date = st.date_input("结束日期", date.today())
+    
+    patient_name = st.text_input("患者姓名（可选，留空查询所有患者）").strip()
+    
+    if st.button("查询日期区间"):
+        if start_date > end_date:
+            st.error("开始日期不能晚于结束日期！")
+        else:
+            if patient_name:
+                # 查询特定患者的日期区间数据
+                df_interval = run_query(
+                    "SELECT * FROM sleep_diary WHERE name=%s AND entry_date BETWEEN %s AND %s ORDER BY entry_date, created_at DESC",
+                    params=(patient_name, start_date.isoformat(), end_date.isoformat())
+                )
+            else:
+                # 查询所有患者的日期区间数据
+                df_interval = run_query(
+                    "SELECT * FROM sleep_diary WHERE entry_date BETWEEN %s AND %s ORDER BY name, entry_date, created_at DESC",
+                    params=(start_date.isoformat(), end_date.isoformat())
+                )
+            
+            if df_interval.empty:
+                st.warning(f"在 {start_date} 到 {end_date} 期间没有发现记录")
+            else:
+                st.success(f"共 {len(df_interval)} 条记录")
+                
+                # 将列名替换为中文
+                df_display = df_interval.copy()
+                df_display.columns = [field_mapping.get(col, col) for col in df_display.columns]
+                
+                # 重新排列列的顺序
+                important_cols = [
+                    "姓名",
+                    "记录日期",
+                    "填写日期",
+                    "上床时间",
+                    "试图入睡时间",
+                    "入睡所需时间（分钟）",
+                    "夜间觉醒次数",
+                    "夜间觉醒总时长（分钟）",
+                    "早晨最终醒来时间",
+                    "起床时间",
+                    "总睡眠时长（小时）",
+                    "睡眠效率（%）",
+                    "睡眠质量自我评价",
+                    "晨起后精神状态",
+                    "日间小睡开始时间",
+                    "日间小睡结束时间",
+                    "日间卧床时间（分钟）",
+                    "昨日白天小睡总时长（分钟）",
+                    "日间情绪状态",
+                    "睡眠干扰因素",
+                    "咖啡因摄入",
+                    "酒精摄入",
+                    "药物名称",
+                    "药物剂量",
+                    "服药时间",
+                    "创建时间"
+                ]
+                
+                existing_cols = [col for col in important_cols if col in df_display.columns]
+                other_cols = [col for col in df_display.columns if col not in existing_cols]
+                final_cols = existing_cols + other_cols
+                
+                df_display = df_display[final_cols]
+                
+                st.dataframe(df_display, use_container_width=True)
+                
+                # 提供Excel下载
+                excel_data = convert_df_to_excel(df_display)
+                file_name = f"日期区间查询_{start_date}_to_{end_date}"
+                if patient_name:
+                    file_name += f"_{patient_name}"
+                file_name += ".xlsx"
+                
+                st.download_button(
+                    label="📥 下载Excel",
+                    data=excel_data,
+                    file_name=file_name,
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
