@@ -352,14 +352,12 @@ with st.form("sleep_diary"):
     
     st.subheader("安眠药物使用")
     # 安眠药物①
-    med_col1, med_col2 = st.columns(2)
     med_name1 = st.selectbox("安眠药物①名称", options=med_options, index=med_options.index(st.session_state.form_data["med_name1"]) if st.session_state.form_data["med_name1"] in med_options else 0) # 从 session_state 加载
-    med_dose1 = med_col2.text_input("安眠药物①剂量", placeholder="0mg", value=st.session_state.form_data["med_dose1"]) # 从 session_state 加载
+    med_dose1 = st.text_input("安眠药物①剂量", placeholder="0mg", value=st.session_state.form_data["med_dose1"]) # 从 session_state 加载
     
     # 安眠药物②
-    med_col3, med_col4 = st.columns(2)
     med_name2 = st.selectbox("安眠药物②名称", options=med_options, index=med_options.index(st.session_state.form_data["med_name2"]) if st.session_state.form_data["med_name2"] in med_options else 0) # 从 session_state 加载
-    med_dose2 = med_col4.text_input("安眠药物②剂量", placeholder="0mg", value=st.session_state.form_data["med_dose2"]) # 从 session_state 加载
+    med_dose2 = st.text_input("安眠药物②剂量", placeholder="0mg", value=st.session_state.form_data["med_dose2"]) # 从 session_state 加载
     
     # 安眠药物服用时间 - 一直可填写状态
     med_time = st.select_slider("安眠药物服用时间", options=evening_slots, value=st.session_state.form_data["med_time"]) # 从 session_state 加载
