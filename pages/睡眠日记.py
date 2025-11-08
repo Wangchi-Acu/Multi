@@ -294,7 +294,7 @@ med_options = [
     "达利雷生 Daridorexant",
     "雷美替胺 Ramelteon",
     "他司美琼 Tasimelteon",
-    "多塞平 Doxepin 3-6 mg",
+    "多塞平 Doxepin",
     "仲丁巴比妥 Butabarbital",
     "司可巴比妥 Secobarbital",
     "苯海拉明 Diphenhydramine",
@@ -368,7 +368,7 @@ with st.form("sleep_diary"):
         # 安全获取小时值
         med_time_parts = st.session_state.form_data["med_time"].split(":")
         med_time_hour = med_time_parts[0] if len(med_time_parts) == 2 else "22"
-        med_hour = st.selectbox("安眠药物服用时间 - 小时", options=hour_options, index=hour_options.index(med_time_hour))
+        med_hour = st.selectbox("安眠药物服用时间（时）", options=hour_options, index=hour_options.index(med_time_hour))
     with col_med_time2:
         # 安全获取分钟值
         med_time_parts = st.session_state.form_data["med_time"].split(":")
@@ -376,7 +376,7 @@ with st.form("sleep_diary"):
         # 确保分钟值在minute_options中，如果不在则使用默认值
         if med_time_minute not in minute_options:
             med_time_minute = "00"
-        med_minute = st.selectbox("安眠药物服用时间 - 分钟", options=minute_options, index=minute_options.index(med_time_minute))
+        med_minute = st.selectbox("安眠药物服用时间（分）", options=minute_options, index=minute_options.index(med_time_minute))
     med_time = f"{med_hour}:{med_minute}"
     
     # 日间情绪状态
@@ -402,13 +402,13 @@ with st.form("sleep_diary"):
     with col_bed1:
         bed_time_parts = st.session_state.form_data["bed_time"].split(":")
         bed_time_hour = bed_time_parts[0] if len(bed_time_parts) == 2 else "23"
-        bed_hour = st.selectbox("昨晚上床时间 - 小时", options=hour_options, index=hour_options.index(bed_time_hour))
+        bed_hour = st.selectbox("昨晚上床时间（时）", options=hour_options, index=hour_options.index(bed_time_hour))
     with col_bed2:
         bed_time_parts = st.session_state.form_data["bed_time"].split(":")
         bed_time_minute = bed_time_parts[1] if len(bed_time_parts) == 2 else "00"
         if bed_time_minute not in minute_options:
             bed_time_minute = "00"
-        bed_minute = st.selectbox("昨晚上床时间 - 分钟", options=minute_options, index=minute_options.index(bed_time_minute))
+        bed_minute = st.selectbox("昨晚上床时间（分）", options=minute_options, index=minute_options.index(bed_time_minute))
     bed_time = f"{bed_hour}:{bed_minute}"
     
     # 闭眼准备入睡时间
@@ -416,13 +416,13 @@ with st.form("sleep_diary"):
     with col_try1:
         try_time_parts = st.session_state.form_data["try_sleep_time"].split(":")
         try_time_hour = try_time_parts[0] if len(try_time_parts) == 2 else "23"
-        try_hour = st.selectbox("闭眼准备入睡时间 - 小时", options=hour_options, index=hour_options.index(try_time_hour))
+        try_hour = st.selectbox("闭眼准备入睡时间（时）", options=hour_options, index=hour_options.index(try_time_hour))
     with col_try2:
         try_time_parts = st.session_state.form_data["try_sleep_time"].split(":")
         try_time_minute = try_time_parts[1] if len(try_time_parts) == 2 else "05"
         if try_time_minute not in minute_options:
             try_time_minute = "05"
-        try_minute = st.selectbox("闭眼准备入睡时间 - 分钟", options=minute_options, index=minute_options.index(try_time_minute))
+        try_minute = st.selectbox("闭眼准备入睡时间（分）", options=minute_options, index=minute_options.index(try_time_minute))
     try_sleep_time = f"{try_hour}:{try_minute}"
     
     col3, col4 = st.columns(2)
@@ -436,13 +436,13 @@ with st.form("sleep_diary"):
     with col_final1:
         final_time_parts = st.session_state.form_data["final_wake_time"].split(":")
         final_time_hour = final_time_parts[0] if len(final_time_parts) == 2 else "06"
-        final_hour = st.selectbox("早晨最终醒来时间 - 小时", options=hour_options, index=hour_options.index(final_time_hour))
+        final_hour = st.selectbox("早晨最终醒来时间（时）", options=hour_options, index=hour_options.index(final_time_hour))
     with col_final2:
         final_time_parts = st.session_state.form_data["final_wake_time"].split(":")
         final_time_minute = final_time_parts[1] if len(final_time_parts) == 2 else "30"
         if final_time_minute not in minute_options:
             final_time_minute = "30"
-        final_minute = st.selectbox("早晨最终醒来时间 - 分钟", options=minute_options, index=minute_options.index(final_time_minute))
+        final_minute = st.selectbox("早晨最终醒来时间（分）", options=minute_options, index=minute_options.index(final_time_minute))
     final_wake_time = f"{final_hour}:{final_minute}"
     
     # 起床时间
@@ -450,13 +450,13 @@ with st.form("sleep_diary"):
     with col_up1:
         up_time_parts = st.session_state.form_data["get_up_time"].split(":")
         up_time_hour = up_time_parts[0] if len(up_time_parts) == 2 else "06"
-        up_hour = st.selectbox("起床时间 - 小时", options=hour_options, index=hour_options.index(up_time_hour))
+        up_hour = st.selectbox("起床时间（时）", options=hour_options, index=hour_options.index(up_time_hour))
     with col_up2:
         up_time_parts = st.session_state.form_data["get_up_time"].split(":")
         up_time_minute = up_time_parts[1] if len(up_time_parts) == 2 else "35"
         if up_time_minute not in minute_options:
             up_time_minute = "35"
-        up_minute = st.selectbox("起床时间 - 分钟", options=minute_options, index=minute_options.index(up_time_minute))
+        up_minute = st.selectbox("起床时间（分）", options=minute_options, index=minute_options.index(up_time_minute))
     get_up_time = f"{up_hour}:{up_minute}"
     
     # 自动计算总睡眠时间（分钟）
