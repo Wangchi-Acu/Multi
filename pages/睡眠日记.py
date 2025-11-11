@@ -337,8 +337,9 @@ def analyze_sleep_data_with_ai(patient_name):
         return f"AI分析出错：{str(e)}"
 
 # 生成时间选项
-# 生成小时选项
-hour_options = [f"{h:02d}" for h in range(24)]
+# 生成小时选项（只显示23-18和04-00，倒序）
+hour_options = [f"{h:02d}" for h in list(range(23, 17, -1)) + list(range(4, -1, -1))]
+
 # 生成分钟选项（以5为单位）
 minute_options = [f"{m:02d}" for m in range(0, 60, 5)]
 
