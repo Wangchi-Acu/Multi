@@ -322,7 +322,7 @@ def analyze_sleep_data_with_ai(patient_name):
 
         # 调用通义千问API
         response = Generation.call(
-            model='qwen-plus',
+            model='qwen-flash',
             prompt=prompt,
             max_tokens=1500,
             temperature=0.7
