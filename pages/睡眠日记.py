@@ -1,14 +1,16 @@
 import streamlit as st
 import pymysql
 import os
-from datetime import datetime, timedelta # 修改：导入 datetime
-import pytz # 新增：导入 pytz 库用于时区处理
+from datetime import datetime, timedelta
+import pytz
 import time
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import dashscope
 from dashscope import Generation
+import threading  # 新增
+import queue      # 新增
 
 # 自定义CSS样式（保持不变）
 st.markdown("""
@@ -67,7 +69,7 @@ def run_query(sql, params=None):
     conn.close()
     return df
 
-# 时间 → 分钟（跨天） - 修复：添加安全检查
+# 时间 → 分钟（跨天）
 def time_to_min(t):
     try:
         if pd.isna(t) or t == "无":
@@ -113,10 +115,8 @@ def plot_all_days(patient_name):
         st.warning("暂无记录")
         return
 
-    # 将日期格式化为“月-日”
     df["date_fmt"] = pd.to_datetime(df["record_date"]).dt.strftime("%m-%d")
 
-    # 1. 夜间关键时间
     night_cols = ["bed_time", "try_sleep_time", "final_wake_time", "get_up_time"]
     night_labels = ["上床时间", "闭眼准备入睡时间", "最终醒来时间", "起床时间"]
     data1 = []
@@ -128,16 +128,11 @@ def plot_all_days(patient_name):
     fig1 = go.Figure(data1)
     fig1.update_layout(
         title="夜间关键时间点",
-        yaxis=dict(
-            tickformat="%H:%M", 
-            autorange=True,
-            showticklabels=False
-        ),
+        yaxis=dict(showticklabels=False),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5)
     )
     st.plotly_chart(fig1, use_container_width=True)
 
-    # 2. 日间小睡时间
     nap_cols = ["nap_start", "nap_end"]
     nap_labels = ["小睡开始时间", "小睡结束时间"]
     data2 = []
@@ -149,16 +144,11 @@ def plot_all_days(patient_name):
     fig2 = go.Figure(data2)
     fig2.update_layout(
         title="日间小睡时间",
-        yaxis=dict(
-            tickformat="%H:%M", 
-            autorange=True,
-            showticklabels=False
-        ),
+        yaxis=dict(showticklabels=False),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, x=1.02, xanchor="left")
     )
     st.plotly_chart(fig2, use_container_width=True)
 
-    # 3-7 其余指标
     metrics = [("sleep_latency", "入睡所需时长（分钟）"),
                ("night_awake_count", "夜间觉醒次数"),
                ("night_awake_total", "夜间觉醒总时长（分钟）"),
@@ -171,8 +161,6 @@ def plot_all_days(patient_name):
 
     # 显示数据框（使用中文列名）
     df_display = df.copy()
-    
-    # 中文列名映射
     chinese_column_names = {
         "name": "姓名",
         "record_date": "记录日期",
@@ -202,64 +190,27 @@ def plot_all_days(patient_name):
         "created_at": "创建时间",
         "date_fmt": "日期"
     }
-    
-    # 重命名列
     df_display.rename(columns=chinese_column_names, inplace=True)
-    
-    # 重新排列列的顺序，将重要的信息放在前面
     important_cols = [
-        "姓名",
-        "记录日期",
-        "填写日期",
-        "上床时间",
-        "闭眼准备入睡时间",
-        "入睡所需时间（分钟）",
-        "夜间觉醒次数",
-        "夜间觉醒总时长（分钟）",
-        "早晨最终醒来时间",
-        "起床时间",
-        "总睡眠时长（小时）",
-        "睡眠效率（%）",
-        "睡眠质量自我评价",
-        "晨起后精神状态",
-        "日间小睡开始时间",
-        "日间小睡结束时间",
-        "日间卧床时间（分钟）",
-        "昨日白天小睡总时长（分钟）",
-        "日间情绪状态",
-        "睡眠干扰因素",
-        "咖啡因摄入",
-        "酒精摄入",
-        "药物名称",
-        "药物剂量",
-        "服药时间",
-        "创建时间",
-        "日期"
+        "姓名", "记录日期", "填写日期", "上床时间", "闭眼准备入睡时间", "入睡所需时间（分钟）",
+        "夜间觉醒次数", "夜间觉醒总时长（分钟）", "早晨最终醒来时间", "起床时间",
+        "总睡眠时长（小时）", "睡眠效率（%）", "睡眠质量自我评价", "晨起后精神状态",
+        "日间小睡开始时间", "日间小睡结束时间", "日间卧床时间（分钟）", "昨日白天小睡总时长（分钟）",
+        "日间情绪状态", "睡眠干扰因素", "咖啡因摄入", "酒精摄入", "药物名称", "药物剂量", "服药时间", "创建时间", "日期"
     ]
-    
-    # 只保留存在的列
     existing_cols = [col for col in important_cols if col in df_display.columns]
-    # 添加其他可能的列
     other_cols = [col for col in df_display.columns if col not in existing_cols]
     final_cols = existing_cols + other_cols
-    
     df_display = df_display[final_cols]
-    
     st.dataframe(df_display.reset_index(drop=True))
 
-# AI分析函数 - 修改为提供所有数据但保护隐私
+# 原始 AI 分析函数（不变）
 def analyze_sleep_data_with_ai(patient_name):
-    """
-    使用通义千问API分析患者的所有睡眠数据并给出建议（保护隐私）
-    """
     try:
-        # 设置API密钥（建议从环境变量获取）
         dashscope.api_key = os.getenv("DASHSCOPE_API_KEY")
-        
         if not dashscope.api_key:
             return "API密钥未配置，无法提供AI分析建议。"
         
-        # 获取患者的所有睡眠数据
         all_data = run_query(
             """
             SELECT t1.* 
@@ -275,27 +226,17 @@ def analyze_sleep_data_with_ai(patient_name):
             """,
             params=(patient_name,)
         )
-        
         if all_data.empty:
             return "暂无数据可供分析。"
         
-        # 保护隐私：只保留必要的数据，移除姓名和敏感日期信息
-        # 只保留record_date和其他睡眠相关数据
         privacy_safe_data = all_data.copy()
-        
-        # 移除隐私信息
-        columns_to_drop = ['name', 'entry_date', 'created_at']  # 移除姓名和填写日期
+        columns_to_drop = ['name', 'entry_date', 'created_at']
         columns_to_keep = [col for col in privacy_safe_data.columns if col not in columns_to_drop]
         privacy_safe_data = privacy_safe_data[columns_to_keep]
-        
-        # 格式化record_date为更友好的显示格式
         privacy_safe_data['record_date'] = pd.to_datetime(privacy_safe_data['record_date']).dt.strftime('%Y-%m-%d')
         
-        # 准备数据摘要
         data_summary = f"患者所有睡眠记录数据（已保护隐私）：\n"
         data_summary += f"记录总数：{len(privacy_safe_data)}条\n\n"
-        
-        # 添加所有记录的详细数据
         data_summary += "详细记录：\n"
         for index, row in privacy_safe_data.iterrows():
             data_summary += f"日期: {row['record_date']}\n"
@@ -304,7 +245,6 @@ def analyze_sleep_data_with_ai(patient_name):
                     data_summary += f"  {col}: {row[col]}\n"
             data_summary += "\n"
         
-        # 构建提示词
         prompt = f"""
         你是一名专业的睡眠医学专家。请根据以下患者的所有睡眠记录数据，提供专业的分析和改善建议，但是回答的文本要体现严谨性，你只是AI分析，结果仅供参考：
 
@@ -320,11 +260,10 @@ def analyze_sleep_data_with_ai(patient_name):
         注意：数据中的日期信息已做隐私保护处理，仅保留记录日期用于分析时间趋势。
         """
 
-        # 调用通义千问API
         response = Generation.call(
             model='qwen-flash',
             prompt=prompt,
-            max_tokens=1500,
+            max_tokens=3000,
             temperature=0.7
         )
         
@@ -336,24 +275,30 @@ def analyze_sleep_data_with_ai(patient_name):
     except Exception as e:
         return f"AI分析出错：{str(e)}"
 
+# 新增：线程安全的 AI 分析封装
+def analyze_sleep_data_with_ai_async(patient_name, result_queue):
+    try:
+        result = analyze_sleep_data_with_ai(patient_name)
+        result_queue.put(("success", result))
+    except Exception as e:
+        result_queue.put(("error", str(e)))
+
 # 生成时间选项
-# 生成小时选项
 hour_options = [f"{h:02d}" for h in range(24)]
-# 生成分钟选项（以5为单位）
 minute_options = [f"{m:02d}" for m in range(0, 60, 5)]
 
-# 日期处理 - 修改：使用北京时间
-beijing_tz = pytz.timezone('Asia/Shanghai') # 定义北京时间时区
-now_beijing = datetime.now(beijing_tz)      # 获取当前北京时间
-today = now_beijing.date()                  # 提取日期部分
-yesterday = today - timedelta(days=1)       # 计算昨天日期
+# 日期处理
+beijing_tz = pytz.timezone('Asia/Shanghai')
+now_beijing = datetime.now(beijing_tz)
+today = now_beijing.date()
+yesterday = today - timedelta(days=1)
 
 # 安眠药物选项
 med_options = [
     "无",
     "艾司唑仑 Estazolam",
-    "阿普唑仑 Alprazolam"
-    "右佐匹克隆 Eszopiclone"
+    "阿普唑仑 Alprazolam",
+    "右佐匹克隆 Eszopiclone",
     "佐匹克隆 Zopiclone",
     "唑吡坦 Zolpidem",
     "劳拉西泮 Lorazepam",
@@ -391,81 +336,62 @@ med_options = [
 
 # 创建表单
 with st.form("sleep_diary"):
-    # 姓名和日期部分
     name = st.text_input("姓名", placeholder="请输入您的姓名", value=st.session_state.form_data["name"])
     
     col_date1, col_date2 = st.columns(2)
-    # 记录日期（日记内容对应的日期，默认为昨天）
     with col_date1:
         st.markdown('<div class="readonly-date">', unsafe_allow_html=True)
         record_date = st.date_input("记录日期（一般为填写日期前一天，无特殊情况无需改动）", yesterday, disabled=True)
         st.markdown('</div>', unsafe_allow_html=True)
-    
-    # 填写日期（提交日记的日期，默认为今天，不可更改）
     with col_date2:
         st.markdown('<div class="readonly-date">', unsafe_allow_html=True)
         entry_date = st.date_input("填写日期", today, disabled=True)
         st.markdown('</div>', unsafe_allow_html=True)
     
     st.subheader("日间活动记录")
-    # 添加“昨日白天小睡总时长”
     nap_duration = st.number_input(
         "昨日白天小睡总时长（分钟）",
         min_value=0,
         max_value=600,
-        value=st.session_state.form_data["nap_duration"], # 从 session_state 加载
+        value=st.session_state.form_data["nap_duration"],
         step=5,
         help="白天小睡的总时长"
     )
-    
-    # 添加日间卧床时间（单位：分钟）
     daytime_bed_minutes = st.number_input(
         "日间卧床时间（分钟）",
         min_value=0,
         max_value=600,
-        value=st.session_state.form_data["daytime_bed_minutes"], # 从 session_state 加载
+        value=st.session_state.form_data["daytime_bed_minutes"],
         step=5
     )
-    
-    caffeine = st.text_input("昨日咖啡因摄入（例：咖啡，8:00/2杯）", value=st.session_state.form_data["caffeine"]) # 从 session_state 加载
-    alcohol = st.text_input("昨日酒精摄入（例：啤酒，19:00/1瓶）", value=st.session_state.form_data["alcohol"]) # 从 session_state 加载
+    caffeine = st.text_input("昨日咖啡因摄入（例：咖啡，8:00/2杯）", value=st.session_state.form_data["caffeine"])
+    alcohol = st.text_input("昨日酒精摄入（例：啤酒，19:00/1瓶）", value=st.session_state.form_data["alcohol"])
     
     st.subheader("安眠药物使用")
-    # 安眠药物①
-    med_name1 = st.selectbox("安眠药物①名称", options=med_options, index=med_options.index(st.session_state.form_data["med_name1"]) if st.session_state.form_data["med_name1"] in med_options else 0) # 从 session_state 加载
-    med_dose1 = st.text_input("安眠药物①剂量", placeholder="0mg", value=st.session_state.form_data["med_dose1"]) # 从 session_state 加载
+    med_name1 = st.selectbox("安眠药物①名称", options=med_options, index=med_options.index(st.session_state.form_data["med_name1"]) if st.session_state.form_data["med_name1"] in med_options else 0)
+    med_dose1 = st.text_input("安眠药物①剂量", placeholder="0mg", value=st.session_state.form_data["med_dose1"])
+    med_name2 = st.selectbox("安眠药物②名称", options=med_options, index=med_options.index(st.session_state.form_data["med_name2"]) if st.session_state.form_data["med_name2"] in med_options else 0)
+    med_dose2 = st.text_input("安眠药物②剂量", placeholder="0mg", value=st.session_state.form_data["med_dose2"])
     
-    # 安眠药物②
-    med_name2 = st.selectbox("安眠药物②名称", options=med_options, index=med_options.index(st.session_state.form_data["med_name2"]) if st.session_state.form_data["med_name2"] in med_options else 0) # 从 session_state 加载
-    med_dose2 = st.text_input("安眠药物②剂量", placeholder="0mg", value=st.session_state.form_data["med_dose2"]) # 从 session_state 加载
-    
-    # 安眠药物服用时间 - 改为下拉框选择
     col_med_time1, col_med_time2 = st.columns(2)
     with col_med_time1:
-        # 安全获取小时值
         med_time_parts = st.session_state.form_data["med_time"].split(":")
         med_time_hour = med_time_parts[0] if len(med_time_parts) == 2 else "22"
         med_hour = st.selectbox("安眠药物服用时间（时）", options=hour_options, index=hour_options.index(med_time_hour))
     with col_med_time2:
-        # 安全获取分钟值
         med_time_parts = st.session_state.form_data["med_time"].split(":")
         med_time_minute = med_time_parts[1] if len(med_time_parts) == 2 else "00"
-        # 确保分钟值在minute_options中，如果不在则使用默认值
         if med_time_minute not in minute_options:
             med_time_minute = "00"
         med_minute = st.selectbox("安眠药物服用时间（分）", options=minute_options, index=minute_options.index(med_time_minute))
     med_time = f"{med_hour}:{med_minute}"
     
-    # 日间情绪状态
-    daytime_mood = st.radio("昨日日间情绪状态", ["优", "良", "中", "差", "很差"], horizontal=True, index=["优", "良", "中", "差", "很差"].index(st.session_state.form_data["daytime_mood"])) # 从 session_state 加载
+    daytime_mood = st.radio("昨日日间情绪状态", ["优", "良", "中", "差", "很差"], horizontal=True, index=["优", "良", "中", "差", "很差"].index(st.session_state.form_data["daytime_mood"]))
     
-    # 干扰睡眠因素 - 添加"无"选项并设为默认
     interference_options = ["噪音", "疼痛", "压力", "温度", "光线", "其他", "无"]
     selected_interference = st.multiselect("昨晚干扰睡眠因素（可多选）", 
                                           interference_options, 
-                                          default=st.session_state.form_data["selected_interference"]) # 从 session_state 加载
-    
-    # 如果用户选择了"无"和其他选项，则只保留"无"
+                                          default=st.session_state.form_data["selected_interference"])
     if "无" in selected_interference:
         sleep_interference = "无"
     elif not selected_interference:
@@ -474,7 +400,6 @@ with st.form("sleep_diary"):
         sleep_interference = ";".join(selected_interference)
     
     st.subheader("夜间睡眠记录")
-    # 上床时间
     col_bed1, col_bed2 = st.columns(2)
     with col_bed1:
         bed_time_parts = st.session_state.form_data["bed_time"].split(":")
@@ -488,7 +413,6 @@ with st.form("sleep_diary"):
         bed_minute = st.selectbox("昨晚上床时间（分）", options=minute_options, index=minute_options.index(bed_time_minute))
     bed_time = f"{bed_hour}:{bed_minute}"
     
-    # 闭眼准备入睡时间
     col_try1, col_try2 = st.columns(2)
     with col_try1:
         try_time_parts = st.session_state.form_data["try_sleep_time"].split(":")
@@ -503,12 +427,10 @@ with st.form("sleep_diary"):
     try_sleep_time = f"{try_hour}:{try_minute}"
     
     col3, col4 = st.columns(2)
-    sleep_latency = col3.number_input("入睡所需时间（分钟）", 0, 800, value=st.session_state.form_data["sleep_latency"]) # 从 session_state 加载
-    night_awake_count = col4.number_input("夜间觉醒次数", 0, 15, value=st.session_state.form_data["night_awake_count"]) # 从 session_state 加载
-    
-    night_awake_total = st.number_input("夜间觉醒总时长（分钟）", 0, 300, value=st.session_state.form_data["night_awake_total"]) # 从 session_state 加载
+    sleep_latency = col3.number_input("入睡所需时间（分钟）", 0, 800, value=st.session_state.form_data["sleep_latency"])
+    night_awake_count = col4.number_input("夜间觉醒次数", 0, 15, value=st.session_state.form_data["night_awake_count"])
+    night_awake_total = st.number_input("夜间觉醒总时长（分钟）", 0, 300, value=st.session_state.form_data["night_awake_total"])
 
-    # 早晨最终醒来时间
     col_final1, col_final2 = st.columns(2)
     with col_final1:
         final_time_parts = st.session_state.form_data["final_wake_time"].split(":")
@@ -522,7 +444,6 @@ with st.form("sleep_diary"):
         final_minute = st.selectbox("早晨最终醒来时间（分）", options=minute_options, index=minute_options.index(final_time_minute))
     final_wake_time = f"{final_hour}:{final_minute}"
     
-    # 起床时间
     col_up1, col_up2 = st.columns(2)
     with col_up1:
         up_time_parts = st.session_state.form_data["get_up_time"].split(":")
@@ -535,13 +456,9 @@ with st.form("sleep_diary"):
             up_time_minute = "35"
         up_minute = st.selectbox("起床时间（分）", options=minute_options, index=minute_options.index(up_time_minute))
     get_up_time = f"{up_hour}:{up_minute}"
-    
-    # 自动计算总睡眠时间（分钟）
-    # 总睡眠时间 = (最终醒来时间 - 闭眼准备入睡时间) - 夜间觉醒总时长 - 入睡所需时间
+
     try_sleep_min = time_to_min(try_sleep_time)
     final_wake_min = time_to_min(final_wake_time)
-    
-    # 计算闭眼准备入睡到最终醒来的总时长（考虑跨天）
     if final_wake_min is not None and try_sleep_min is not None:
         if final_wake_min >= try_sleep_min:
             sleep_duration_min = final_wake_min - try_sleep_min
@@ -552,26 +469,21 @@ with st.form("sleep_diary"):
     else:
         total_sleep_minutes = 0
         total_sleep_hours = 0.0
-    
-    # 自动计算睡眠效率（%）
-    # 睡眠效率 = 总睡眠时间 / (起床时间 - 上床时间)
+
     bed_min = time_to_min(bed_time)
     get_up_min = time_to_min(get_up_time)
-    
     if bed_min is not None and get_up_min is not None:
         if get_up_min >= bed_min:
             time_in_bed_min = get_up_min - bed_min
         else:
             time_in_bed_min = (24 * 60) - bed_min + get_up_min
-        
         if time_in_bed_min > 0:
             sleep_efficiency = (total_sleep_minutes / time_in_bed_min) * 100
         else:
             sleep_efficiency = 0.0
     else:
         sleep_efficiency = 0.0
-    
-    # 显示自动计算的总睡眠时间和睡眠效率
+
     st.markdown('<div class="readonly-data">', unsafe_allow_html=True)
     col_sleep1, col_sleep2 = st.columns(2)
     with col_sleep1:
@@ -580,20 +492,41 @@ with st.form("sleep_diary"):
         st.markdown(f"**睡眠效率:** {sleep_efficiency:.1f}%")
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # 睡眠质量自我评价
-    sleep_quality = st.radio("睡眠质量自我评价", ["优", "良", "中", "差", "很差"], horizontal=True, index=["优", "良", "中", "差", "很差"].index(st.session_state.form_data["sleep_quality"])) # 从 session_state 加载
-    
-    # 晨起后精神状态 - 改为好、中、差
+    sleep_quality = st.radio("睡眠质量自我评价", ["优", "良", "中", "差", "很差"], horizontal=True, index=["优", "良", "中", "差", "很差"].index(st.session_state.form_data["sleep_quality"]))
     morning_feeling_options = ["好", "中", "差"]
     morning_feeling = st.radio("晨起后精神状态", morning_feeling_options, horizontal=True, 
-                              index=["好", "中", "差"].index(st.session_state.form_data["morning_feeling"])) # 从 session_state 加载
+                              index=["好", "中", "差"].index(st.session_state.form_data["morning_feeling"]))
     
-    # 提交按钮
     submitted = st.form_submit_button("保存日记")
 
-# 数据库连接和保存逻辑
+# 表单未提交时更新 session_state
+if not submitted:
+    st.session_state.form_data.update({
+        "name": name,
+        "nap_duration": nap_duration,
+        "daytime_bed_minutes": daytime_bed_minutes,
+        "caffeine": caffeine,
+        "alcohol": alcohol,
+        "med_name1": med_name1,
+        "med_dose1": med_dose1,
+        "med_name2": med_name2,
+        "med_dose2": med_dose2,
+        "med_time": med_time,
+        "daytime_mood": daytime_mood,
+        "selected_interference": selected_interference,
+        "bed_time": bed_time,
+        "try_sleep_time": try_sleep_time,
+        "sleep_latency": sleep_latency,
+        "night_awake_count": night_awake_count,
+        "night_awake_total": night_awake_total,
+        "final_wake_time": final_wake_time,
+        "get_up_time": get_up_time,
+        "sleep_quality": sleep_quality,
+        "morning_feeling": morning_feeling
+    })
+
+# 提交逻辑
 if submitted:
-    # 检查自检错误
     bed_min = time_to_min(bed_time)
     try_sleep_min = time_to_min(try_sleep_time)
     final_wake_min = time_to_min(final_wake_time)
@@ -604,19 +537,15 @@ if submitted:
         errors.append("时间格式错误，请检查时间输入。")
     elif bed_min > try_sleep_min:
         errors.append("上床时间不能晚于闭眼准备入睡时间，请重新选择。")
-    
-    # 检查起床时间是否早于最终醒来时间
     if final_wake_min is not None and get_up_min is not None:
         if get_up_min < final_wake_min:
             errors.append("起床时间不能早于早晨最终醒来时间，请重新选择。")
     elif final_wake_min is not None or get_up_min is not None:
         errors.append("时间格式错误，请检查早晨最终醒来时间和起床时间的输入。")
-    
     if not name.strip():
         errors.append("请填写姓名后再保存。")
     
     if errors:
-        # 显示醒目错误信息
         error_html = """
         <div style="
             background-color: #f8d7da;
@@ -635,24 +564,23 @@ if submitted:
         st.markdown(error_html, unsafe_allow_html=True)
     else:
         try:
-            # 构建记录数据
             record = {
                 "name": name,
-                "record_date": record_date.isoformat(),  # 睡眠日期
-                "entry_date": entry_date.isoformat(),    # 填写日期
-                "nap_start": "无",  # 固定值
-                "nap_end": "无",    # 固定值
-                "daytime_bed_minutes": daytime_bed_minutes,  # 新增的日间卧床时间
-                "nap_duration": nap_duration,  # 新增的白天小睡总时长
+                "record_date": record_date.isoformat(),
+                "entry_date": entry_date.isoformat(),
+                "nap_start": "无",
+                "nap_end": "无",
+                "daytime_bed_minutes": daytime_bed_minutes,
+                "nap_duration": nap_duration,
                 "caffeine": caffeine,
                 "alcohol": alcohol,
-                "med_name": f"{med_name1};{med_name2}",  # 合并两个药物名称
-                "med_dose": f"{med_dose1};{med_dose2}",  # 合并两个药物剂量
+                "med_name": f"{med_name1};{med_name2}",
+                "med_dose": f"{med_dose1};{med_dose2}",
                 "med_time": med_time,
                 "daytime_mood": daytime_mood,
                 "sleep_interference": sleep_interference,
                 "bed_time": bed_time,
-                "try_sleep_time": try_sleep_time,  # 闭眼准备入睡时间
+                "try_sleep_time": try_sleep_time,
                 "sleep_latency": sleep_latency,
                 "night_awake_count": night_awake_count,
                 "night_awake_total": night_awake_total,
@@ -664,7 +592,6 @@ if submitted:
                 "morning_feeling": morning_feeling
             }
 
-            # 显示更醒目的加载提示
             loading_placeholder = st.empty()
             loading_placeholder.markdown("""
                 <div style="
@@ -682,7 +609,6 @@ if submitted:
                 </div>
             """, unsafe_allow_html=True)
             
-            # 连接数据库
             conn = pymysql.connect(
                 host=os.getenv("SQLPUB_HOST"),
                 port=int(os.getenv("SQLPUB_PORT", 3307)),
@@ -693,7 +619,6 @@ if submitted:
             )
             
             with conn.cursor() as cursor:
-                # 检查是否已存在该用户同一天的记录
                 check_sql = """
                 SELECT COUNT(*) FROM sleep_diary 
                 WHERE name = %(name)s AND record_date = %(record_date)s
@@ -702,7 +627,6 @@ if submitted:
                 exists = cursor.fetchone()[0] > 0
                 
                 if exists:
-                    # 更新现有记录
                     update_sql = """
                     UPDATE sleep_diary
                     SET entry_date = %(entry_date)s,
@@ -733,7 +657,6 @@ if submitted:
                     cursor.execute(update_sql, record)
                     action = "更新"
                 else:
-                    # 插入新记录
                     insert_sql = """
                     INSERT INTO sleep_diary
                     (name, record_date, entry_date, nap_start, nap_end, daytime_bed_minutes, nap_duration, caffeine, alcohol, 
@@ -754,12 +677,9 @@ if submitted:
             
             conn.commit()
             conn.close()
-            
-            # 清除加载提示并显示成功消息
             loading_placeholder.empty()
             st.success("✅ 日记保存完成！向下滑动可查看近期睡眠情况及AI分析！")
             
-            # 保存成功后，清空 session_state 中的表单数据
             st.session_state.form_data = {
                 "name": "",
                 "nap_duration": 0,
@@ -784,59 +704,51 @@ if submitted:
                 "morning_feeling": "中"
             }
             
-            # 展示所有次汇总图表
             st.subheader("📊 您所有次的睡眠情况")
             plot_all_days(name)
             
-            # AI分析和建议
+            # ✅ 新增：带伪进度条的 AI 分析（关键部分）
             st.subheader("🤖 AI睡眠分析与建议")
-            
-            # 获取所有数据用于AI分析（已保护隐私）
-            ai_analysis_placeholder = st.empty()
-            ai_analysis_placeholder.info("正在为您生成个性化的睡眠分析和建议...")
-            
-            try:
-                ai_analysis_result = analyze_sleep_data_with_ai(name)
-                ai_analysis_placeholder.empty()  # 清除加载提示
-                st.markdown(f"""
-                    <div style="
-                        background-color: #f8f9fa;
-                        border-left: 4px solid #007bff;
-                        padding: 20px;
-                        border-radius: 5px;
-                        margin: 20px 0;
-                    ">
-                        <h4>📋 个性化睡眠分析报告</h4>
-                        <div style="line-height: 1.6;">{ai_analysis_result}</div>
-                    </div>
-                """, unsafe_allow_html=True)
-            except Exception as e:
-                ai_analysis_placeholder.error(f"AI分析失败：{str(e)}")
-                
+
+            result_queue = queue.Queue()
+            thread = threading.Thread(target=analyze_sleep_data_with_ai_async, args=(name, result_queue))
+            thread.start()
+
+            # 显示伪进度条（约12秒）
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+
+            for percent in range(0, 100, 5):
+                time.sleep(0.6)
+                progress_bar.progress(percent + 5)
+                status_text.text(f"🧠 AI 分析中... {percent + 5}%")
+
+            # 等待线程最多5秒
+            thread.join(timeout=5)
+
+            if not result_queue.empty():
+                status_type, message = result_queue.get()
+                progress_bar.empty()
+                status_text.empty()
+                if status_type == "success":
+                    st.markdown(f"""
+                        <div style="
+                            background-color: #f8f9fa;
+                            border-left: 4px solid #007bff;
+                            padding: 20px;
+                            border-radius: 5px;
+                            margin: 20px 0;
+                        ">
+                            <h4>📋 个性化睡眠分析报告</h4>
+                            <div style="line-height: 1.6;">{message}</div>
+                        </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.error(f"AI分析失败：{message}")
+            else:
+                progress_bar.empty()
+                status_text.empty()
+                st.warning("AI 分析响应较慢，仍在后台处理中... 请稍后刷新页面查看结果。")
+
         except Exception as e:
             st.error(f"操作失败: {str(e)}")
-else: # 如果没有提交表单，保存当前表单内容到 session_state
-    # 更新 session_state 中的表单数据
-    st.session_state.form_data.update({
-        "name": name,
-        "nap_duration": nap_duration,
-        "daytime_bed_minutes": daytime_bed_minutes,
-        "caffeine": caffeine,
-        "alcohol": alcohol,
-        "med_name1": med_name1,
-        "med_dose1": med_dose1,
-        "med_name2": med_name2,
-        "med_dose2": med_dose2,
-        "med_time": med_time,
-        "daytime_mood": daytime_mood,
-        "selected_interference": selected_interference,
-        "bed_time": bed_time,
-        "try_sleep_time": try_sleep_time,
-        "sleep_latency": sleep_latency,
-        "night_awake_count": night_awake_count,
-        "night_awake_total": night_awake_total,
-        "final_wake_time": final_wake_time,
-        "get_up_time": get_up_time,
-        "sleep_quality": sleep_quality,
-        "morning_feeling": morning_feeling
-    })
