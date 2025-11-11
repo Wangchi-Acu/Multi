@@ -204,7 +204,7 @@ def plot_all_days(patient_name):
     df_display = df_display[final_cols]
     st.dataframe(df_display.reset_index(drop=True))
 
-# 原始 AI 分析函数（不变）
+# 修改后的 AI 分析函数（启用 thinking）
 def analyze_sleep_data_with_ai(patient_name):
     try:
         dashscope.api_key = os.getenv("DASHSCOPE_API_KEY")
@@ -261,16 +261,22 @@ def analyze_sleep_data_with_ai(patient_name):
         """
 
         response = Generation.call(
-            model='qwen-flash',
+            model='qwen-math-plus',
             prompt=prompt,
             max_tokens=3000,
             temperature=0.7,
-            enable_thinking=True,
-            result_format="message"  # ✅ 必须加上这一行
+            enable_thinking=True,      # ✅ 启用推理过程
+            result_format="message"    # ✅ 必须指定
         )
         
         if response.status_code == 200:
-            return response.output.text
+            # ✅ 修改：从 choices[0].message.content 获取内容
+            content = response.output.choices[0].message.content
+            thinking_content = response.output.choices[0].message.get('thinking', '') # 获取推理过程（如果存在）
+            return {
+                "content": content,
+                "thinking": thinking_content
+            }
         else:
             return f"AI分析失败：{response.message}"
             
@@ -709,48 +715,59 @@ if submitted:
             st.subheader("📊 您所有次的睡眠情况")
             plot_all_days(name)
             
-            # ✅ 新增：带伪进度条的 AI 分析（关键部分）
+            # ✅ 新增：带推理过程展示的 AI 分析（关键部分）
             st.subheader("🤖 AI睡眠分析与建议")
 
             result_queue = queue.Queue()
             thread = threading.Thread(target=analyze_sleep_data_with_ai_async, args=(name, result_queue))
             thread.start()
 
-            # 显示伪进度条（约12秒）
-            progress_bar = st.progress(0)
-            status_text = st.empty()
-
-            for percent in range(0, 100, 5):
-                time.sleep(1.0)
-                progress_bar.progress(percent + 5)
-                status_text.text(f"🧠 AI 分析中... {percent + 5}%")
-
-            # 等待线程最多5秒
-            thread.join(timeout=5)
+            # 等待线程完成（最多等待20秒）
+            thread.join(timeout=20)
 
             if not result_queue.empty():
                 status_type, message = result_queue.get()
-                progress_bar.empty()
-                status_text.empty()
                 if status_type == "success":
-                    st.markdown(f"""
-                        <div style="
-                            background-color: #f8f9fa;
-                            border-left: 4px solid #007bff;
-                            padding: 20px;
-                            border-radius: 5px;
-                            margin: 20px 0;
-                        ">
-                            <h4>📋 个性化睡眠分析报告</h4>
-                            <div style="line-height: 1.6;">{message}</div>
-                        </div>
-                    """, unsafe_allow_html=True)
+                    if isinstance(message, dict): # 检查是否为新的返回格式
+                        content = message.get("content", "")
+                        thinking_content = message.get("thinking", "")
+                        
+                        # 如果有推理过程，先展示
+                        if thinking_content:
+                            with st.expander("🔬 AI 推理过程（点击展开）", expanded=False):
+                                st.markdown(f"<div style='white-space: pre-wrap;'>{thinking_content}</div>", unsafe_allow_html=True)
+                        
+                        # 展示最终分析结果
+                        st.markdown(f"""
+                            <div style="
+                                background-color: #f8f9fa;
+                                border-left: 4px solid #007bff;
+                                padding: 20px;
+                                border-radius: 5px;
+                                margin: 20px 0;
+                            ">
+                                <h4>📋 个性化睡眠分析报告</h4>
+                                <div style="line-height: 1.6;">{content}</div>
+                            </div>
+                        """, unsafe_allow_html=True)
+                    else:
+                        # 兼容旧的字符串返回格式
+                        st.markdown(f"""
+                            <div style="
+                                background-color: #f8f9fa;
+                                border-left: 4px solid #007bff;
+                                padding: 20px;
+                                border-radius: 5px;
+                                margin: 20px 0;
+                            ">
+                                <h4>📋 个性化睡眠分析报告</h4>
+                                <div style="line-height: 1.6;">{message}</div>
+                            </div>
+                        """, unsafe_allow_html=True)
                 else:
                     st.error(f"AI分析失败：{message}")
             else:
-                progress_bar.empty()
-                status_text.empty()
-                st.warning("AI 分析响应较慢，仍在后台处理中，请稍等...")
+                st.warning("AI 分析响应较慢，仍在后台处理中，请稍后刷新页面查看结果。")
 
         except Exception as e:
             st.error(f"操作失败: {str(e)}")
