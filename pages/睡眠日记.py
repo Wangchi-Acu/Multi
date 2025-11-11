@@ -264,7 +264,8 @@ def analyze_sleep_data_with_ai(patient_name):
             model='qwen-flash',
             prompt=prompt,
             max_tokens=3000,
-            temperature=0.7
+            temperature=0.7,
+            enable_thinking=True
         )
         
         if response.status_code == 200:
