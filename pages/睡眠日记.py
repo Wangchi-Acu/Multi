@@ -719,7 +719,7 @@ if submitted:
             status_text = st.empty()
 
             for percent in range(0, 100, 5):
-                time.sleep(0.6)
+                time.sleep(1.0)
                 progress_bar.progress(percent + 5)
                 status_text.text(f"🧠 AI 分析中... {percent + 5}%")
 
@@ -748,7 +748,7 @@ if submitted:
             else:
                 progress_bar.empty()
                 status_text.empty()
-                st.warning("AI 分析响应较慢，仍在后台处理中... 请稍后刷新页面查看结果。")
+                st.warning("AI 分析响应较慢，仍在后台处理中，请稍等...")
 
         except Exception as e:
             st.error(f"操作失败: {str(e)}")
