@@ -261,7 +261,7 @@ def analyze_sleep_data_with_ai(patient_name):
         """
 
         response = Generation.call(
-            model='qwen-max',
+            model='qwen-flash',
             prompt=prompt,
             max_tokens=3000,
             temperature=0.7,
@@ -767,7 +767,7 @@ if submitted:
                 else:
                     st.error(f"AI分析失败：{message}")
             else:
-                st.warning("AI 分析响应较慢，仍在后台处理中，请稍后刷新页面查看结果。")
+                st.warning("AI 分析响应较慢，仍在后台处理中，请勿离开此页面。")
 
         except Exception as e:
             st.error(f"操作失败: {str(e)}")
