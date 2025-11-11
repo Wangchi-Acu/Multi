@@ -424,8 +424,7 @@ with st.form("sleep_diary"):
         min_value=0,
         max_value=600,
         value=st.session_state.form_data["daytime_bed_minutes"], # 从 session_state 加载
-        step=5,
-        help="除小睡外，日间在床上休息但未入睡的时间"
+        step=5
     )
     
     caffeine = st.text_input("昨日咖啡因摄入（例：咖啡，8:00/2杯）", value=st.session_state.form_data["caffeine"]) # 从 session_state 加载
