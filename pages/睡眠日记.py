@@ -265,7 +265,8 @@ def analyze_sleep_data_with_ai(patient_name):
             prompt=prompt,
             max_tokens=3000,
             temperature=0.7,
-            enable_thinking=True
+            enable_thinking=True,
+            result_format="message"  # ✅ 必须加上这一行
         )
         
         if response.status_code == 200:
