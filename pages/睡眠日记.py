@@ -352,7 +352,9 @@ yesterday = today - timedelta(days=1)       # 计算昨天日期
 med_options = [
     "无",
     "艾司唑仑 Estazolam",
-    "佐匹克隆 Eszopiclone",
+    "阿普唑仑 Alprazolam"
+    "右佐匹克隆 Eszopiclone"
+    "佐匹克隆 Zopiclone",
     "唑吡坦 Zolpidem",
     "劳拉西泮 Lorazepam",
     "地西泮 Diazepam",
