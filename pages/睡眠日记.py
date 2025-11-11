@@ -261,7 +261,7 @@ def analyze_sleep_data_with_ai(patient_name):
         """
 
         response = Generation.call(
-            model='qwen-math-plus',
+            model='qwen-max',
             prompt=prompt,
             max_tokens=3000,
             temperature=0.7,
