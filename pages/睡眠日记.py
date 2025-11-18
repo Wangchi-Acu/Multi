@@ -97,7 +97,7 @@ def generate_time_slots(start_hour, end_hour):
     return slots
 
 # 生成时间选项（10分钟间隔，从20:00到23:50，再从00:00到04:00）
-def generate_time_slots_10min():
+def generate_time_slots_10min_evening():
     slots = []
     # 从20:00到23:50
     for h in range(20, 24):
@@ -105,6 +105,15 @@ def generate_time_slots_10min():
             slots.append(f"{h:02d}:{m:02d}")
     # 从00:00到04:00
     for h in range(0, 5):
+        for m in range(0, 60, 10):
+            slots.append(f"{h:02d}:{m:02d}")
+    return slots
+
+# 生成时间选项（10分钟间隔，从03:00到12:00）
+def generate_time_slots_10min_morning():
+    slots = []
+    # 从03:00到12:00
+    for h in range(3, 13):
         for m in range(0, 60, 10):
             slots.append(f"{h:02d}:{m:02d}")
     return slots
@@ -363,7 +372,8 @@ hour_options_morning = [f"{h:02d}" for h in range(12, 1, -1)]
 minute_options = [f"{m:02d}" for m in range(0, 60, 5)]
 
 # 生成时间选项（10分钟间隔）
-time_options_10min = generate_time_slots_10min()
+time_options_10min_evening = generate_time_slots_10min_evening()
+time_options_10min_morning = generate_time_slots_10min_morning()
 
 def get_hour_index(stored_hour_str, options_list):
     """
@@ -519,12 +529,12 @@ with st.form("sleep_diary"):
     
     st.subheader("夜间睡眠记录")
     # 上床时间 - 使用10分钟间隔选项
-    bed_time = st.selectbox("昨晚上床时间", options=time_options_10min, 
-                            index=time_options_10min.index(st.session_state.form_data["bed_time"]) if st.session_state.form_data["bed_time"] in time_options_10min else 0)
+    bed_time = st.selectbox("昨晚上床时间", options=time_options_10min_evening, 
+                            index=time_options_10min_evening.index(st.session_state.form_data["bed_time"]) if st.session_state.form_data["bed_time"] in time_options_10min_evening else 0)
 
     # 闭眼准备入睡时间 - 使用10分钟间隔选项
-    try_sleep_time = st.selectbox("闭眼准备入睡时间", options=time_options_10min, 
-                                  index=time_options_10min.index(st.session_state.form_data["try_sleep_time"]) if st.session_state.form_data["try_sleep_time"] in time_options_10min else 1) # 默认为23:10（索引1）
+    try_sleep_time = st.selectbox("闭眼准备入睡时间", options=time_options_10min_evening, 
+                                  index=time_options_10min_evening.index(st.session_state.form_data["try_sleep_time"]) if st.session_state.form_data["try_sleep_time"] in time_options_10min_evening else 1) # 默认为20:10（索引1）
     
     col3, col4 = st.columns(2)
     sleep_latency = col3.number_input("入睡所需时间（分钟）", 0, 800, value=st.session_state.form_data["sleep_latency"]) # 从 session_state 加载
@@ -532,37 +542,13 @@ with st.form("sleep_diary"):
     
     night_awake_total = st.number_input("夜间觉醒总时长（分钟）", 0, 300, value=st.session_state.form_data["night_awake_total"]) # 从 session_state 加载
 
-    # 早晨最终醒来时间
-    col_final1, col_final2 = st.columns([2, 2])  # 调整比例使输入框更紧凑
-    with col_final1:
-        final_time_parts = st.session_state.form_data["final_wake_time"].split(":")
-        final_time_hour = final_time_parts[0] if len(final_time_parts) == 2 else "06"
-        final_hour = st.selectbox("早晨最终醒来时间（时）", options=hour_options_morning, index=get_hour_index(final_time_hour, hour_options_morning))
-        st.write("时")
-    with col_final2:
-        final_time_parts = st.session_state.form_data["final_wake_time"].split(":")
-        final_time_minute = final_time_parts[1] if len(final_time_parts) == 2 else "30"
-        if final_time_minute not in minute_options:
-            final_time_minute = "30"
-        final_minute = st.selectbox("早晨最终醒来时间（分）", options=minute_options, index=minute_options.index(final_time_minute))
-        st.write("分")
-    final_wake_time = f"{final_hour}:{final_minute}"
-    
-    # 起床时间
-    col_up1, col_up2 = st.columns([2, 2])  # 调整比例使输入框更紧凑
-    with col_up1:
-        up_time_parts = st.session_state.form_data["get_up_time"].split(":")
-        up_time_hour = up_time_parts[0] if len(up_time_parts) == 2 else "06"
-        up_hour = st.selectbox("起床时间（时）", options=hour_options_morning, index=get_hour_index(up_time_hour, hour_options_morning))
-        st.write("时")
-    with col_up2:
-        up_time_parts = st.session_state.form_data["get_up_time"].split(":")
-        up_time_minute = up_time_parts[1] if len(up_time_parts) == 2 else "35"
-        if up_time_minute not in minute_options:
-            up_time_minute = "35"
-        up_minute = st.selectbox("起床时间（分）", options=minute_options, index=minute_options.index(up_time_minute))
-        st.write("分")
-    get_up_time = f"{up_hour}:{up_minute}"
+    # 早晨最终醒来时间 - 使用10分钟间隔选项
+    final_wake_time = st.selectbox("早晨最终醒来时间", options=time_options_10min_morning, 
+                                   index=time_options_10min_morning.index(st.session_state.form_data["final_wake_time"]) if st.session_state.form_data["final_wake_time"] in time_options_10min_morning else 0)
+
+    # 起床时间 - 使用10分钟间隔选项
+    get_up_time = st.selectbox("起床时间", options=time_options_10min_morning, 
+                               index=time_options_10min_morning.index(st.session_state.form_data["get_up_time"]) if st.session_state.form_data["get_up_time"] in time_options_10min_morning else 1) # 默认为03:10（索引1）
     
     # 自动计算总睡眠时间（分钟）
     # 总睡眠时间 = (最终醒来时间 - 闭眼准备入睡时间) - 夜间觉醒总时长 - 入入所需时间
