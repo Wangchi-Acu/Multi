@@ -502,20 +502,38 @@ with st.form("sleep_diary"):
         sleep_interference = ";".join(selected_interference)
     
     st.subheader("夜间睡眠记录")
-    # 上床时间
-    col_bed1, col_bed2 = st.columns([2, 2])  # 调整比例使输入框更紧凑
-    with col_bed1:
+    # --------------------------------------------------
+    #  上床时间（横向紧凑布局，单位与输入框同行）
+    # --------------------------------------------------
+    st.write("昨晚上床时间")          # 小节标题，可删
+    col_bed_h, col_bed_m = st.columns([1, 1])   # 两列等宽，可自行调比例
+
+    with col_bed_h:
+        # 小时选择框
         bed_time_parts = st.session_state.form_data["bed_time"].split(":")
         bed_time_hour = bed_time_parts[0] if len(bed_time_parts) == 2 else "23"
-        bed_hour = st.selectbox("昨晚上床时间（时）", options=hour_options_night, index=get_hour_index(bed_time_hour, hour_options_night))
+        bed_hour = st.selectbox(
+            "时",
+            options=hour_options_night,
+            index=get_hour_index(bed_time_hour, hour_options_night),
+            label_visibility="collapsed"   # 隐藏 label，保证最紧凑
+        )
+        # 用 st.write 把单位放在同一行右侧
         st.write("时")
-    with col_bed2:
-        bed_time_parts = st.session_state.form_data["bed_time"].split(":")
+
+    with col_bed_m:
+        # 分钟选择框
         bed_time_minute = bed_time_parts[1] if len(bed_time_parts) == 2 else "00"
         if bed_time_minute not in minute_options:
             bed_time_minute = "00"
-        bed_minute = st.selectbox("昨晚上床时间（分）", options=minute_options, index=minute_options.index(bed_time_minute))
+        bed_minute = st.selectbox(
+            "分",
+            options=minute_options,
+            index=minute_options.index(bed_time_minute),
+            label_visibility="collapsed"
+        )
         st.write("分")
+
     bed_time = f"{bed_hour}:{bed_minute}"
     
     # 闭眼准备入睡时间
