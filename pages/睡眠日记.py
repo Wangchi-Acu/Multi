@@ -96,6 +96,19 @@ def generate_time_slots(start_hour, end_hour):
             slots.append(f"{hour:02d}:{m:02d}")
     return slots
 
+# 生成时间选项（10分钟间隔，从20:00到23:50，再从00:00到04:00）
+def generate_time_slots_10min():
+    slots = []
+    # 从20:00到23:50
+    for h in range(20, 24):
+        for m in range(0, 60, 10):
+            slots.append(f"{h:02d}:{m:02d}")
+    # 从00:00到04:00
+    for h in range(0, 5):
+        for m in range(0, 60, 10):
+            slots.append(f"{h:02d}:{m:02d}")
+    return slots
+
 # 绘图函数 - 所有次汇总图表
 def plot_all_days(patient_name):
     df = run_query(
@@ -349,6 +362,9 @@ hour_options_morning = [f"{h:02d}" for h in range(12, 1, -1)]
 # 生成分钟选项（以5为单位）
 minute_options = [f"{m:02d}" for m in range(0, 60, 5)]
 
+# 生成时间选项（10分钟间隔）
+time_options_10min = generate_time_slots_10min()
+
 def get_hour_index(stored_hour_str, options_list):
     """
     安全获取小时在 options_list 中的索引。
@@ -502,55 +518,13 @@ with st.form("sleep_diary"):
         sleep_interference = ";".join(selected_interference)
     
     st.subheader("夜间睡眠记录")
-    # --------------------------------------------------
-    #  上床时间（横向紧凑布局，单位与输入框同行）
-    # --------------------------------------------------
-    st.write("昨晚上床时间")          # 小节标题，可删
-    col_bed_h, col_bed_m = st.columns([1, 1])   # 两列等宽，可自行调比例
+    # 上床时间 - 使用10分钟间隔选项
+    bed_time = st.selectbox("昨晚上床时间", options=time_options_10min, 
+                            index=time_options_10min.index(st.session_state.form_data["bed_time"]) if st.session_state.form_data["bed_time"] in time_options_10min else 0)
 
-    with col_bed_h:
-        # 小时选择框
-        bed_time_parts = st.session_state.form_data["bed_time"].split(":")
-        bed_time_hour = bed_time_parts[0] if len(bed_time_parts) == 2 else "23"
-        bed_hour = st.selectbox(
-            "时",
-            options=hour_options_night,
-            index=get_hour_index(bed_time_hour, hour_options_night),
-            label_visibility="collapsed"   # 隐藏 label，保证最紧凑
-        )
-        # 用 st.write 把单位放在同一行右侧
-        st.write("时")
-
-    with col_bed_m:
-        # 分钟选择框
-        bed_time_minute = bed_time_parts[1] if len(bed_time_parts) == 2 else "00"
-        if bed_time_minute not in minute_options:
-            bed_time_minute = "00"
-        bed_minute = st.selectbox(
-            "分",
-            options=minute_options,
-            index=minute_options.index(bed_time_minute),
-            label_visibility="collapsed"
-        )
-        st.write("分")
-
-    bed_time = f"{bed_hour}:{bed_minute}"
-    
-    # 闭眼准备入睡时间
-    col_try1, col_try2 = st.columns([2, 2])  # 调整比例使输入框更紧凑
-    with col_try1:
-        try_time_parts = st.session_state.form_data["try_sleep_time"].split(":")
-        try_time_hour = try_time_parts[0] if len(try_time_parts) == 2 else "23"
-        try_hour = st.selectbox("闭眼准备入睡时间（时）", options=hour_options_night, index=get_hour_index(try_time_hour, hour_options_night))
-        st.write("时")
-    with col_try2:
-        try_time_parts = st.session_state.form_data["try_sleep_time"].split(":")
-        try_time_minute = try_time_parts[1] if len(try_time_parts) == 2 else "05"
-        if try_time_minute not in minute_options:
-            try_time_minute = "05"
-        try_minute = st.selectbox("闭眼准备入睡时间（分）", options=minute_options, index=minute_options.index(try_time_minute))
-        st.write("分")
-    try_sleep_time = f"{try_hour}:{try_minute}"
+    # 闭眼准备入睡时间 - 使用10分钟间隔选项
+    try_sleep_time = st.selectbox("闭眼准备入睡时间", options=time_options_10min, 
+                                  index=time_options_10min.index(st.session_state.form_data["try_sleep_time"]) if st.session_state.form_data["try_sleep_time"] in time_options_10min else 1) # 默认为23:10（索引1）
     
     col3, col4 = st.columns(2)
     sleep_latency = col3.number_input("入睡所需时间（分钟）", 0, 800, value=st.session_state.form_data["sleep_latency"]) # 从 session_state 加载
