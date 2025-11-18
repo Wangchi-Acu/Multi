@@ -29,6 +29,10 @@ if 'form_data' not in st.session_state:
         "med_dose1": "0mg",
         "med_name2": "无",
         "med_dose2": "0mg",
+        "med_name3": "无",      # ← 新增
+        "med_dose3": "0mg",     # ← 新增
+        "med_name4": "无",      # ← 新增
+        "med_dose4": "0mg",     # ← 新增
         "med_time": "22:00",
         "daytime_mood": "中",
         "selected_interference": ["无"],
@@ -113,7 +117,7 @@ def plot_all_days(patient_name):
         st.warning("暂无记录")
         return
 
-    # 将日期格式化为“月-日”
+    # 将日期格式化为"月-日"
     df["date_fmt"] = pd.to_datetime(df["record_date"]).dt.strftime("%m-%d")
 
     # 1. 夜间关键时间
@@ -422,7 +426,7 @@ with st.form("sleep_diary"):
         st.markdown('</div>', unsafe_allow_html=True)
     
     st.subheader("日间活动记录")
-    # 添加“昨日白天小睡总时长”
+    # 添加"昨日白天小睡总时长"
     nap_duration = st.number_input(
         "昨日白天小睡总时长（分钟）",
         min_value=0,
@@ -452,6 +456,16 @@ with st.form("sleep_diary"):
     # 安眠药物②
     med_name2 = st.selectbox("安眠药物②名称", options=med_options, index=med_options.index(st.session_state.form_data["med_name2"]) if st.session_state.form_data["med_name2"] in med_options else 0) # 从 session_state 加载
     med_dose2 = st.text_input("安眠药物②剂量", placeholder="0mg", value=st.session_state.form_data["med_dose2"]) # 从 session_state 加载
+
+    # 安眠药物③
+    med_name3 = st.selectbox("安眠药物③名称", options=med_options, 
+                             index=med_options.index(st.session_state.form_data["med_name3"]) if st.session_state.form_data["med_name3"] in med_options else 0)
+    med_dose3 = st.text_input("安眠药物③剂量", placeholder="0mg", value=st.session_state.form_data["med_dose3"])
+
+    # 安眠药物④
+    med_name4 = st.selectbox("安眠药物④名称", options=med_options, 
+                             index=med_options.index(st.session_state.form_data["med_name4"]) if st.session_state.form_data["med_name4"] in med_options else 0)
+    med_dose4 = st.text_input("安眠药物④剂量", placeholder="0mg", value=st.session_state.form_data["med_dose4"])
     
     # 安眠药物服用时间 - 改为下拉框选择
     col_med_time1, col_med_time2 = st.columns(2)
@@ -489,31 +503,35 @@ with st.form("sleep_diary"):
     
     st.subheader("夜间睡眠记录")
     # 上床时间
-    col_bed1, col_bed2 = st.columns(2)
+    col_bed1, col_bed2 = st.columns([2, 2])  # 调整比例使输入框更紧凑
     with col_bed1:
         bed_time_parts = st.session_state.form_data["bed_time"].split(":")
         bed_time_hour = bed_time_parts[0] if len(bed_time_parts) == 2 else "23"
         bed_hour = st.selectbox("昨晚上床时间（时）", options=hour_options_night, index=get_hour_index(bed_time_hour, hour_options_night))
+        st.write("时")
     with col_bed2:
         bed_time_parts = st.session_state.form_data["bed_time"].split(":")
         bed_time_minute = bed_time_parts[1] if len(bed_time_parts) == 2 else "00"
         if bed_time_minute not in minute_options:
             bed_time_minute = "00"
         bed_minute = st.selectbox("昨晚上床时间（分）", options=minute_options, index=minute_options.index(bed_time_minute))
+        st.write("分")
     bed_time = f"{bed_hour}:{bed_minute}"
     
     # 闭眼准备入睡时间
-    col_try1, col_try2 = st.columns(2)
+    col_try1, col_try2 = st.columns([2, 2])  # 调整比例使输入框更紧凑
     with col_try1:
         try_time_parts = st.session_state.form_data["try_sleep_time"].split(":")
         try_time_hour = try_time_parts[0] if len(try_time_parts) == 2 else "23"
         try_hour = st.selectbox("闭眼准备入睡时间（时）", options=hour_options_night, index=get_hour_index(try_time_hour, hour_options_night))
+        st.write("时")
     with col_try2:
         try_time_parts = st.session_state.form_data["try_sleep_time"].split(":")
         try_time_minute = try_time_parts[1] if len(try_time_parts) == 2 else "05"
         if try_time_minute not in minute_options:
             try_time_minute = "05"
         try_minute = st.selectbox("闭眼准备入睡时间（分）", options=minute_options, index=minute_options.index(try_time_minute))
+        st.write("分")
     try_sleep_time = f"{try_hour}:{try_minute}"
     
     col3, col4 = st.columns(2)
@@ -523,35 +541,39 @@ with st.form("sleep_diary"):
     night_awake_total = st.number_input("夜间觉醒总时长（分钟）", 0, 300, value=st.session_state.form_data["night_awake_total"]) # 从 session_state 加载
 
     # 早晨最终醒来时间
-    col_final1, col_final2 = st.columns(2)
+    col_final1, col_final2 = st.columns([2, 2])  # 调整比例使输入框更紧凑
     with col_final1:
         final_time_parts = st.session_state.form_data["final_wake_time"].split(":")
         final_time_hour = final_time_parts[0] if len(final_time_parts) == 2 else "06"
         final_hour = st.selectbox("早晨最终醒来时间（时）", options=hour_options_morning, index=get_hour_index(final_time_hour, hour_options_morning))
+        st.write("时")
     with col_final2:
         final_time_parts = st.session_state.form_data["final_wake_time"].split(":")
         final_time_minute = final_time_parts[1] if len(final_time_parts) == 2 else "30"
         if final_time_minute not in minute_options:
             final_time_minute = "30"
         final_minute = st.selectbox("早晨最终醒来时间（分）", options=minute_options, index=minute_options.index(final_time_minute))
+        st.write("分")
     final_wake_time = f"{final_hour}:{final_minute}"
     
     # 起床时间
-    col_up1, col_up2 = st.columns(2)
+    col_up1, col_up2 = st.columns([2, 2])  # 调整比例使输入框更紧凑
     with col_up1:
         up_time_parts = st.session_state.form_data["get_up_time"].split(":")
         up_time_hour = up_time_parts[0] if len(up_time_parts) == 2 else "06"
         up_hour = st.selectbox("起床时间（时）", options=hour_options_morning, index=get_hour_index(up_time_hour, hour_options_morning))
+        st.write("时")
     with col_up2:
         up_time_parts = st.session_state.form_data["get_up_time"].split(":")
         up_time_minute = up_time_parts[1] if len(up_time_parts) == 2 else "35"
         if up_time_minute not in minute_options:
             up_time_minute = "35"
         up_minute = st.selectbox("起床时间（分）", options=minute_options, index=minute_options.index(up_time_minute))
+        st.write("分")
     get_up_time = f"{up_hour}:{up_minute}"
     
     # 自动计算总睡眠时间（分钟）
-    # 总睡眠时间 = (最终醒来时间 - 闭眼准备入睡时间) - 夜间觉醒总时长 - 入睡所需时间
+    # 总睡眠时间 = (最终醒来时间 - 闭眼准备入睡时间) - 夜间觉醒总时长 - 入入所需时间
     try_sleep_min = time_to_min(try_sleep_time)
     final_wake_min = time_to_min(final_wake_time)
     
@@ -660,8 +682,8 @@ if submitted:
                 "nap_duration": nap_duration,  # 新增的白天小睡总时长
                 "caffeine": caffeine,
                 "alcohol": alcohol,
-                "med_name": f"{med_name1};{med_name2}",  # 合并两个药物名称
-                "med_dose": f"{med_dose1};{med_dose2}",  # 合并两个药物剂量
+                "med_name": f"{med_name1};{med_name2};{med_name3};{med_name4}",  # 合并四个药物名称
+                "med_dose": f"{med_dose1};{med_dose2};{med_dose3};{med_dose4}",  # 合并四个药物剂量
                 "med_time": med_time,
                 "daytime_mood": daytime_mood,
                 "sleep_interference": sleep_interference,
@@ -784,6 +806,10 @@ if submitted:
                 "med_dose1": "0mg",
                 "med_name2": "无",
                 "med_dose2": "0mg",
+                "med_name3": "无",      # ← 新增
+                "med_dose3": "0mg",     # ← 新增
+                "med_name4": "无",      # ← 新增
+                "med_dose4": "0mg",     # ← 新增
                 "med_time": "22:00",
                 "daytime_mood": "中",
                 "selected_interference": ["无"],
@@ -841,6 +867,10 @@ else: # 如果没有提交表单，保存当前表单内容到 session_state
         "med_dose1": med_dose1,
         "med_name2": med_name2,
         "med_dose2": med_dose2,
+        "med_name3": med_name3,      # ← 新增
+        "med_dose3": med_dose3,      # ← 新增
+        "med_name4": med_name4,      # ← 新增
+        "med_dose4": med_dose4,      # ← 新增
         "med_time": med_time,
         "daytime_mood": daytime_mood,
         "selected_interference": selected_interference,
