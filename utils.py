@@ -130,8 +130,13 @@ if __name__ == "__main__":
                 '<div class="card-title">👨‍⚕️ 医生专用查询</div>'
                 '<div style="margin-bottom:0.8rem;">查看患者睡眠日记与量表汇总</div>',
                 unsafe_allow_html=True)
-    _, col, _ = st.columns([1, 2, 1])
-    with col:
-        if st.button("进入查询后台", type="primary", use_container_width=True):
-            st.switch_page("pages/睡眠日记查询.py")
+    doctor_buttons = [
+        ("📊 睡眠日记查询", "pages/睡眠日记查询.py"),
+        ("📈 量表汇总查询", "pages/量表汇总查询.py"),
+    ]
+    cols = st.columns(2)  # 每行 2 个按钮
+    for i, (txt, page) in enumerate(doctor_buttons):
+        with cols[i % 2]:
+            if st.button(txt, use_container_width=True):
+                st.switch_page(page)
     st.markdown('</div>', unsafe_allow_html=True)
