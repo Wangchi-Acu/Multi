@@ -4,7 +4,8 @@ import pymysql
 import os
 import base64
 from dotenv import load_dotenv
-from streamlit_pdf_viewer import pdf_viewer
+# 移除 streamlit_pdf_viewer 导入，如果不需要其他功能的话
+# from streamlit_pdf_viewer import pdf_viewer 
 load_dotenv()
 
 st.set_page_config(page_title="下载门诊监测报告", layout="wide")
@@ -82,9 +83,30 @@ if st.session_state.meta_list:
 
     col1, col2 = st.columns(2)
     with col1:
-    if st.button("📖 查看报告"):
-        blob = get_blob_by_id(selected_id)
-        pdf_viewer(blob, width=700, height=800)
+        if st.button("📖 查看报告"):
+            blob = get_blob_by_id(selected_id)
+            # --- 最快的 PDF 预览方法 ---
+            try:
+                # 方法1: 尝试使用 st.components.v1.html 和 iframe
+                import streamlit.components.v1 as components
+                import base64
+                b64_pdf = base64.b64encode(blob).decode("utf-8")
+                pdf_display = f"""
+                <iframe 
+                    src="data:application/pdf;base64,{b64_pdf}" 
+                    width="100%" 
+                    height="800px" 
+                    type="application/pdf">
+                </iframe>
+                """
+                components.html(pdf_display, height=850) # 高度略大于 iframe，确保显示完整
+            except:
+                # 方法2: 如果方法1失败，尝试直接 st.download_button 的数据方式展示（某些浏览器支持）
+                # 这个方法不一定在所有环境下都有效，但速度快
+                st.write("尝试预览...")
+                st.markdown(f'<embed src="data:application/pdf;base64,{base64.b64encode(blob).decode()}" width="100%" height="800px" type="application/pdf">', unsafe_allow_html=True)
+                # 如果以上都不行，提示用户下载后查看
+                st.warning("PDF 预览可能不支持，请尝试下载后查看。")
 
     with col2:
         blob = get_blob_by_id(selected_id)
