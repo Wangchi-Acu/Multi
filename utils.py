@@ -80,11 +80,11 @@ if __name__ == "__main__":
     # ------------------------------------------------------------------
     st.markdown('<div class="card card-sleep">'
                 '<div class="card-title">🛏️ 睡眠日记</div>'
-                '<div style="margin-bottom:0.8rem;">每日睡前填写，记录睡眠情况</div>',
+                '<div style="margin-bottom:0.8rem;">每日上午填写，记录昨夜睡眠情况</div>',
                 unsafe_allow_html=True)
     _, col, _ = st.columns([1, 2, 1])
     with col:
-        if st.button("立即填写睡眠日记", type="primary", use_container_width=True):
+        if st.button("睡眠日记填写入口", type="primary", use_container_width=True):
             st.switch_page("pages/睡眠日记.py")
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -97,7 +97,7 @@ if __name__ == "__main__":
                 unsafe_allow_html=True)
     _, col, _ = st.columns([1, 2, 1])
     with col:
-        if st.button("下载报告", type="primary", use_container_width=True):
+        if st.button("门诊监测报告下载入口", type="primary", use_container_width=True):
             st.switch_page("pages/下载门诊监测报告.py")
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -109,12 +109,12 @@ if __name__ == "__main__":
                 '<div style="margin-bottom:0.8rem;">完成各量表自评，协助医生评估</div>',
                 unsafe_allow_html=True)
     scale_buttons = [
-        ("🛋️ PSQI 睡眠质量", "pages/量表① PSQI.py"),
-        ("😴 ISI 失眠严重程度", "pages/量表② ISI.py"),
-        ("🌀 HAS 嗜睡量表", "pages/量表③ HAS.py"),
+        ("🛋️ PSQI 睡眠质量量表", "pages/量表① PSQI.py"),
+        ("😴 ISI 失眠严重程度量表", "pages/量表② ISI.py"),
+        ("🌀 HAS 过度觉醒量表", "pages/量表③ HAS.py"),
         ("⚡ FSS 疲劳量表", "pages/量表④ FSS.py"),
-        ("😰 SAS 焦虑自评", "pages/量表⑤ SAS.py"),
-        ("😞 SDS 抑郁自评", "pages/量表⑥ SDS.py"),
+        ("😰 SAS 自评量表", "pages/量表⑤ SAS.py"),
+        ("😞 SDS 自评量表", "pages/量表⑥ SDS.py"),
     ]
     cols = st.columns(3)  # 每行 3 个按钮
     for i, (txt, page) in enumerate(scale_buttons):
