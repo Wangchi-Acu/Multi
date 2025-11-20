@@ -4,7 +4,7 @@ import pymysql
 import os
 import base64
 from dotenv import load_dotenv
-
+from streamlit_pdf_viewer import pdf_viewer
 load_dotenv()
 
 st.set_page_config(page_title="下载门诊监测报告", layout="wide")
@@ -82,11 +82,9 @@ if st.session_state.meta_list:
 
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("📖 查看报告"):
-            blob = get_blob_by_id(selected_id)
-            b64 = base64.b64encode(blob).decode()
-            html = f'<iframe src="data:application/pdf;base64,{b64}" width="100%" height="600" type="application/pdf"></iframe>'
-            st.markdown(html, unsafe_allow_html=True)
+    if st.button("📖 查看报告"):
+        blob = get_blob_by_id(selected_id)
+        pdf_viewer(blob, width=700, height=800)
 
     with col2:
         blob = get_blob_by_id(selected_id)
