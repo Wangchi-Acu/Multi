@@ -13,7 +13,13 @@ st.markdown("---")
 
 name = st.text_input("请输入您的姓名：").strip()
 
-if st.button("立即下载"):
+# 初始化 session state 用于存储查询到的报告
+if 'reports' not in st.session_state:
+    st.session_state.reports = []
+if 'selected_report' not in st.session_state:
+    st.session_state.selected_report = None
+
+if st.button("点击查看已有报告"):
     if not name:
         st.warning("姓名不能为空")
         st.stop()
@@ -29,8 +35,6 @@ if st.button("立即下载"):
             charset='utf8mb4')
 
         with conn.cursor() as cur:
-            # 修改查询以获取所有报告记录及其上传时间（或治疗日期字段，如果有的话）
-            # 假设数据库中有 upload_time 或其他日期字段来区分报告
             cur.execute(
                 "SELECT pdf_blob, upload_time, id FROM sleep_report_pdf WHERE patient_name=%s ORDER BY upload_time DESC",
                 (name,))
@@ -38,36 +42,54 @@ if st.button("立即下载"):
 
         if not rows:
             st.error("未找到您的报告，请确认姓名是否正确或稍后再试。")
-            st.stop()
-
-        st.success(f"找到 {len(rows)} 份报告，请选择您要查看或下载的报告：")
-
-        # 为每份报告创建一个分列容器，或使用 st.expander 以节省空间
-        for idx, (pdf_blob, upload_time, report_id) in enumerate(rows):
-            # 使用 expander 来组织每个报告的选项，避免页面过长
-            with st.expander(f"报告 #{idx+1} - 上传时间: {upload_time}", expanded=True):
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    # 使用 base64 编码的 PDF 在新标签页中预览
-                    pdf_base64 = base64.b64encode(pdf_blob).decode('utf-8')
-                    pdf_display = f'<iframe src="data:application/pdf;base64,{pdf_base64}" width="100%" height="500" type="application/pdf"></iframe>'
-                    if st.button(f"📖 查看报告 #{idx+1}", key=f"view_{report_id}"):
-                        # 在 Streamlit 中直接显示 PDF 预览
-                        st.markdown(pdf_display, unsafe_allow_html=True)
-                
-                with col2:
-                    # 下载按钮
-                    st.download_button(
-                        label=f"⬇️ 下载报告 #{idx+1}",
-                        data=pdf_blob,
-                        file_name=f"{name}_门诊监测报告_{upload_time}.pdf",
-                        mime="application/pdf",
-                        key=f"download_{report_id}"
-                    )
+            st.session_state.reports = [] # 清空之前的数据
+        else:
+            st.session_state.reports = rows
+            st.success(f"成功获取到 {len(rows)} 份报告，请在下方选择操作。")
+            # 显示报告列表
+            for idx, (pdf_blob, upload_time, report_id) in enumerate(st.session_state.reports):
+                st.write(f"**报告 #{idx+1} - 上传时间: {upload_time}**")
 
     except Exception as e:
         st.error(f"数据库连接或查询出错: {e}")
+        st.session_state.reports = []
     finally:
         if conn:
             conn.close()
+
+# 如果查询到了报告，则显示操作选项
+if st.session_state.reports:
+    st.markdown("---")
+    st.subheader("选择报告进行操作")
+    
+    # 创建一个列表，包含每个报告的显示名称，用于选择
+    report_options = []
+    for idx, (pdf_blob, upload_time, report_id) in enumerate(st.session_state.reports):
+        report_options.append(f"报告 #{idx+1} - 上传时间: {upload_time}")
+
+    # 让用户选择一个报告
+    selected_option = st.selectbox("请选择您要操作的报告：", report_options)
+
+    # 根据选择的报告，找到对应的 blob 数据和 ID
+    selected_idx = report_options.index(selected_option)
+    selected_pdf_blob, selected_upload_time, selected_report_id = st.session_state.reports[selected_idx]
+
+    # 为选中的报告提供查看和下载按钮
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        if st.button(f"📖 查看报告 ({selected_upload_time})"):
+            # 使用 base64 编码的 PDF 在页面中预览
+            pdf_base64 = base64.b64encode(selected_pdf_blob).decode('utf-8')
+            pdf_display = f'<iframe src="data:application/pdf;base64,{pdf_base64}" width="100%" height="600" type="application/pdf"></iframe>'
+            st.markdown(pdf_display, unsafe_allow_html=True)
+    
+    with col2:
+        st.download_button(
+            label=f"⬇️ 下载报告 ({selected_upload_time})",
+            data=selected_pdf_blob,
+            file_name=f"{name}_门诊监测报告_{selected_upload_time}.pdf",
+            mime="application/pdf",
+        )
+else:
+    st.info("请先输入姓名并点击 '点击查看已有报告'。")
