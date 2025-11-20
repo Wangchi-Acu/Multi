@@ -7,3 +7,4 @@ plotly
 dashscope
 openpyxl
 dotenv
+streamlit-pdf-viewer
