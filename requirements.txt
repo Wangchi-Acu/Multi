@@ -8,3 +8,4 @@ dashscope
 openpyxl
 dotenv
 streamlit-pdf-viewer
+pytz
