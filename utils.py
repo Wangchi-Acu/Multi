@@ -70,7 +70,7 @@ if __name__ == "__main__":
     # 顶部 Logo + 标题
     _, cen, _ = st.columns([1, 2, 1])
     with cen:
-        st.image("jsszyylogo.png", use_column_width=True)
+        st.image("jsszyylogo.png", width="stretch")
     st.markdown('<div style="text-align:center;font-size:2.2rem;font-weight:700;color:#0d47a1;margin-bottom:0.3rem;">'
                 '针灸科失眠专病门诊<br>量表测评系统</div>',
                 unsafe_allow_html=True)
